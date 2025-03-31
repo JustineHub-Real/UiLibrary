@@ -12,28 +12,16 @@ local redzlib = {
 	Themes = {
 		Darker = {
 			["Color Hub 1"] = ColorSequence.new({
-				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(25, 25, 25)),
-				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(32.5, 32.5, 32.5)),
-				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(25, 25, 25))
+				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 0, 139)),
+				ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 0, 139)),
+				ColorSequenceKeypoint.new(1.00, Color3.fromRGB(0, 0, 139))
 			}),
-			["Color Hub 2"] = Color3.fromRGB(30, 30, 30),
-			["Color Stroke"] = Color3.fromRGB(40, 40, 40),
-			["Color Theme"] = Color3.fromRGB(88, 101, 242),
-			["Color Text"] = Color3.fromRGB(243, 243, 243),
-			["Color Dark Text"] = Color3.fromRGB(180, 180, 180)
+			["Color Hub 2"] = Color3.fromRGB(0, 71, 171),
+			["Color Stroke"] = Color3.fromRGB(31, 81, 255),
+			["Color Theme"] = Color3.fromRGB(0, 0, 139),
+			["Color Text"] = Color3.fromRGB(255, 255, 255),
+			["Color Dark Text"] = Color3.fromRGB(255, 255, 255)
 		},
-                Blue = {
-                      ["Color Hub 1"] = ColorSequence.new({
-                              ColorSequenceKeypoint.new(0.00, Color3.fromRGB(20, 40, 70)),
-                              ColorSequenceKeypoint.new(0.50, Color3.fromRGB(30, 60, 100)),
-                              ColorSequenceKeypoint.new(1.00, Color3.fromRGB(20, 40, 70))
-                      }),
-                      ["Color Hub 2"] = Color3.fromRGB(25, 50, 85),
-                      ["Color Stroke"] = Color3.fromRGB(35, 70, 120),
-                      ["Color Theme"] = Color3.fromRGB(65, 150, 255),
-                      ["Color Text"] = Color3.fromRGB(240, 240, 240),
-                      ["Color Dark Text"] = Color3.fromRGB(180, 180, 180)
-                },
 		Dark = {
 			["Color Hub 1"] = ColorSequence.new({
 				ColorSequenceKeypoint.new(0.00, Color3.fromRGB(40, 40, 40)),
@@ -65,7 +53,7 @@ local redzlib = {
 	Save = {
 		UISize = {550, 380},
 		TabSize = 160,
-		Theme = "Blue"
+		Theme = "Darker"
 	},
 	Settings = {},
 	Connection = {},
