@@ -1,0 +1,143 @@
+-- JustineHub UI Library v1
+local JustineLib = {}
+
+-- Services
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Main Setup
+function JustineLib:MakeWindow(info)
+    local windowTitle = info[1] or "Justine Hub UI"
+    local author = info[2] or "by Justine"
+    local configName = info[3] or "justinehub.json"
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "JustineHubUI"
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Parent = game:GetService("CoreGui")
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Size = UDim2.new(0, 500, 0, 350)
+    MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    MainFrame.Name = "MainFrame"
+    MainFrame.Parent = ScreenGui
+
+    local UICorner = Instance.new("UICorner")
+    UICorner.CornerRadius = UDim.new(0, 8)
+    UICorner.Parent = MainFrame
+
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, 0, 0, 40)
+    Title.BackgroundTransparency = 1
+    Title.Text = windowTitle .. " - " .. author
+    Title.Font = Enum.Font.GothamBold
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextSize = 18
+    Title.Parent = MainFrame
+
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, 0, 1, -40)
+    container.Position = UDim2.new(0, 0, 0, 40)
+    container.BackgroundTransparency = 1
+    container.Name = "Container"
+    container.Parent = MainFrame
+
+    local UIListLayout = Instance.new("UIListLayout")
+    UIListLayout.Padding = UDim.new(0, 8)
+    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    UIListLayout.Parent = container
+
+    local windowObj = {}
+
+    function windowObj:MakeTab(tabInfo)
+        local tabName = tabInfo[1] or "Tab"
+        local newTab = {}
+
+        local section = Instance.new("Frame")
+        section.Size = UDim2.new(1, -10, 0, 300)
+        section.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+        section.LayoutOrder = 1
+        section.Parent = container
+
+        local UICorner = Instance.new("UICorner")
+        UICorner.CornerRadius = UDim.new(0, 6)
+        UICorner.Parent = section
+
+        local sectionLayout = Instance.new("UIListLayout")
+        sectionLayout.Padding = UDim.new(0, 5)
+        sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        sectionLayout.Parent = section
+
+        function newTab:AddButton(data)
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -10, 0, 35)
+            btn.Text = data.Name or "Button"
+            btn.Font = Enum.Font.Gotham
+            btn.TextSize = 14
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            btn.Parent = section
+
+            local UIC = Instance.new("UICorner")
+            UIC.CornerRadius = UDim.new(0, 5)
+            UIC.Parent = btn
+
+            btn.MouseButton1Click:Connect(function()
+                if data.Callback then
+                    pcall(data.Callback)
+                end
+            end)
+        end
+
+        function newTab:AddToggle(data)
+            local toggleFrame = Instance.new("Frame")
+            toggleFrame.Size = UDim2.new(1, -10, 0, 30)
+            toggleFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+            toggleFrame.Parent = section
+
+            local UICorner = Instance.new("UICorner")
+            UICorner.CornerRadius = UDim.new(0, 5)
+            UICorner.Parent = toggleFrame
+
+            local txt = Instance.new("TextLabel")
+            txt.Text = data.Name or "Toggle"
+            txt.Font = Enum.Font.Gotham
+            txt.TextSize = 14
+            txt.TextColor3 = Color3.fromRGB(255, 255, 255)
+            txt.BackgroundTransparency = 1
+            txt.Size = UDim2.new(1, -40, 1, 0)
+            txt.Parent = toggleFrame
+
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(0, 30, 0, 30)
+            btn.Position = UDim2.new(1, -35, 0, 0)
+            btn.Text = data.Default and "ON" or "OFF"
+            btn.Font = Enum.Font.GothamBold
+            btn.TextSize = 12
+            btn.TextColor3 = Color3.new(1, 1, 1)
+            btn.BackgroundColor3 = data.Default and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(150, 0, 0)
+            btn.Parent = toggleFrame
+
+            local state = data.Default or false
+
+            btn.MouseButton1Click:Connect(function()
+                state = not state
+                btn.Text = state and "ON" or "OFF"
+                btn.BackgroundColor3 = state and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(150, 0, 0)
+                if data.Callback then
+                    pcall(data.Callback, state)
+                end
+            end)
+        end
+
+        return newTab
+    end
+
+    return windowObj
+end
+
+return JustineLib
