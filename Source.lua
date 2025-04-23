@@ -10,10 +10,10 @@ return function(config)
     gui.IgnoreGuiInset = true
     gui.Parent = game:GetService("CoreGui")
 
-    -- Main Frame (Rectangular shape)
+    -- Main Frame
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 370, 0, 200)
-    frame.Position = UDim2.new(0.5, -185, 0.5, -100)
+    frame.Size = UDim2.new(0, 250, 0, 100)
+    frame.Position = UDim2.new(0.5, -125, 0.5, -50)
     frame.BackgroundTransparency = 1
     frame.BackgroundColor3 = config.frameColor or Color3.fromRGB(0, 60, 130)
     frame.BorderSizePixel = 0
@@ -47,10 +47,10 @@ return function(config)
     task.wait(5)
     introTitle:Destroy()
 
-    -- Expand frame to rectangular (reapply same size just for animation feel)
+    -- Expand frame like a UI rectangle
     TweenService:Create(frame, TweenInfo.new(1), {
-        Size = UDim2.new(0, 370, 0, 200),
-        Position = UDim2.new(0.5, -185, 0.5, -100)
+        Size = UDim2.new(0, 400, 0, 260),
+        Position = UDim2.new(0.5, -200, 0.5, -130)
     }):Play()
 
     task.wait(1.1)
