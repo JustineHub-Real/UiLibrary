@@ -64,8 +64,8 @@ local function CreateMainUI(config)
 
     -- Expand Frame to main UI
     TweenService:Create(frame, TweenInfo.new(1), {
-        Size = UDim2.new(0, 400, 0, 325),
-        Position = UDim2.new(0.5, -180, 0.5, -162)
+        Size = UDim2.new(0, 480, 0, 240),
+        Position = UDim2.new(0.5, -140, 0.5, -120)
     }):Play()
 
     task.wait(1.1)
