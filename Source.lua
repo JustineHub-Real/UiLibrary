@@ -1,7 +1,21 @@
--- Justine Hub UI Library - Modular + Expandable
-return function(config)
-    local TweenService = game:GetService("TweenService")
-    local UserInputService = game:GetService("UserInputService")
+-- source.lua -- JustineHubLib UI Library
+-- This library creates an intro UI that is customizable through a configuration table.
+
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local function CreateMainUI(config)
+    config = config or {}
+
+    -- Configuration defaults
+    local frameColor = config.frameColor or Color3.fromRGB(0, 60, 130)
+    local gradientTop = config.gradientTop or Color3.fromRGB(0, 90, 150)
+    local gradientBottom = config.gradientBottom or Color3.fromRGB(0, 40, 80)
+    local introText = config.introText or "Justine Hub"
+    local titleText = config.titleText or "Justine Hub by Justine"
+    local introSize = config.introSize or UDim2.new(0, 250, 0, 100)
+    local introPosition = config.introPosition or UDim2.new(0.5, -125, 0.5, -50)
+    local cornerRadius = config.cornerRadius or UDim.new(0, 12)
 
     -- Create GUI
     local gui = Instance.new("ScreenGui")
@@ -10,28 +24,29 @@ return function(config)
     gui.IgnoreGuiInset = true
     gui.Parent = game:GetService("CoreGui")
 
-    -- Main Frame
+    -- Intro Frame
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 250, 0, 100)
-    frame.Position = UDim2.new(0.5, -125, 0.5, -50)
+    frame.Size = introSize
+    frame.Position = introPosition
     frame.BackgroundTransparency = 1
-    frame.BackgroundColor3 = config.frameColor or Color3.fromRGB(0, 60, 130)
+    frame.BackgroundColor3 = frameColor
     frame.BorderSizePixel = 0
-    frame.Visible = true
     frame.Parent = gui
 
+    -- Gradient on Frame
     local gradient = Instance.new("UIGradient", frame)
-    gradient.Color = ColorSequence.new {
-        ColorSequenceKeypoint.new(0, config.gradientTop or Color3.fromRGB(0, 90, 150)),
-        ColorSequenceKeypoint.new(1, config.gradientBottom or Color3.fromRGB(0, 40, 80))
+    gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, gradientTop),
+        ColorSequenceKeypoint.new(1, gradientBottom)
     }
 
+    -- Rounded Corners
     local corner = Instance.new("UICorner", frame)
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = cornerRadius
 
-    -- Intro Text
+    -- Intro Text (big cover)
     local introTitle = Instance.new("TextLabel")
-    introTitle.Text = config.introText or "Welcome to Justine Hub"
+    introTitle.Text = introText
     introTitle.Size = UDim2.new(1, 0, 1, 0)
     introTitle.BackgroundTransparency = 1
     introTitle.Font = Enum.Font.GothamBold
@@ -47,25 +62,25 @@ return function(config)
     task.wait(5)
     introTitle:Destroy()
 
-    -- Expand frame like a UI rectangle
+    -- Expand Frame to main UI
     TweenService:Create(frame, TweenInfo.new(1), {
-        Size = UDim2.new(0, 400, 0, 260),
-        Position = UDim2.new(0.5, -200, 0.5, -130)
+        Size = UDim2.new(0, 400, 0, 325),
+        Position = UDim2.new(0.5, -180, 0.5, -162)
     }):Play()
 
     task.wait(1.1)
 
-    -- Title
-    local title = Instance.new("TextLabel")
-    title.Text = config.titleText or "Justine Hub by Justine"
-    title.Size = UDim2.new(1, -10, 0, 20)
-    title.Position = UDim2.new(0, 5, 0, 5)
-    title.BackgroundTransparency = 1
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 10
-    title.TextColor3 = Color3.new(1, 1, 1)
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = frame
+    -- Small Title (header) on top of main UI
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Text = titleText
+    titleLabel.Size = UDim2.new(1, -10, 0, 20)
+    titleLabel.Position = UDim2.new(0, 5, 0, 5)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 10
+    titleLabel.TextColor3 = Color3.new(1, 1, 1)
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = frame
 
     -- Close Button
     local closeBtn = Instance.new("TextButton")
@@ -77,12 +92,11 @@ return function(config)
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 14
     closeBtn.Parent = frame
-
     closeBtn.MouseButton1Click:Connect(function()
         gui:Destroy()
     end)
 
-    -- Minimize Button
+    -- Minimize Button (simple: hides the frame contents below the header)
     local minimizeBtn = Instance.new("TextButton")
     minimizeBtn.Text = "—"
     minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
@@ -92,12 +106,11 @@ return function(config)
     minimizeBtn.Font = Enum.Font.GothamBold
     minimizeBtn.TextSize = 14
     minimizeBtn.Parent = frame
-
     minimizeBtn.MouseButton1Click:Connect(function()
         frame.Visible = false
     end)
 
-    -- Dragging Main Frame
+    -- (Dragging logic for frame)
     local dragging, dragInput, dragStart, startPos
     local function update(input)
         local delta = input.Position - dragStart
@@ -130,7 +143,7 @@ return function(config)
         end
     end)
 
-    -- Toggle Button
+    -- Draggable Toggle Button (to show/hide the main frame)
     local toggleBtn = Instance.new("ImageButton")
     toggleBtn.Size = UDim2.new(0, 60, 0, 60)
     toggleBtn.Position = UDim2.new(0, 10, 0.5, -30)
@@ -147,7 +160,6 @@ return function(config)
         frame.Visible = not frame.Visible
     end)
 
-    -- Dragging Toggle Button
     local toggleDragging = false
     local toggleStart, togglePos, toggleDragInput
 
@@ -182,5 +194,14 @@ return function(config)
         end
     end)
 
-    return frame
+    return {
+        Gui = gui,
+        Frame = frame,
+        TitleLabel = titleLabel,
+        CloseButton = closeBtn,
+        MinimizeButton = minimizeBtn,
+        ToggleButton = toggleBtn,
+    }
 end
+
+return CreateMainUI
