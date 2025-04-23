@@ -1,186 +1,186 @@
--- Justine Hub GUI - Full Script with Rectangular Expansion after Intro
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
+-- Justine Hub UI Library - Modular + Expandable
+return function(config)
+    local TweenService = game:GetService("TweenService")
+    local UserInputService = game:GetService("UserInputService")
 
--- Create GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "JustineHubLib"
-gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.Parent = game:GetService("CoreGui")
+    -- Create GUI
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "JustineHubLib"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.Parent = game:GetService("CoreGui")
 
--- Create Main Frame (initial small size for intro)
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 250, 0, 100)
-frame.Position = UDim2.new(0.5, -125, 0.5, -50)
-frame.BackgroundTransparency = 1
-frame.BackgroundColor3 = Color3.fromRGB(0, 60, 130)
-frame.BorderSizePixel = 0
-frame.Visible = false
-frame.Parent = gui
+    -- Main Frame
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 250, 0, 100)
+    frame.Position = UDim2.new(0.5, -125, 0.5, -50)
+    frame.BackgroundTransparency = 1
+    frame.BackgroundColor3 = config.frameColor or Color3.fromRGB(0, 60, 130)
+    frame.BorderSizePixel = 0
+    frame.Visible = true
+    frame.Parent = gui
 
-local gradient = Instance.new("UIGradient", frame)
-gradient.Color = ColorSequence.new{
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 90, 150)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 40, 80))
-}
+    local gradient = Instance.new("UIGradient", frame)
+    gradient.Color = ColorSequence.new {
+        ColorSequenceKeypoint.new(0, config.gradientTop or Color3.fromRGB(0, 90, 150)),
+        ColorSequenceKeypoint.new(1, config.gradientBottom or Color3.fromRGB(0, 40, 80))
+    }
 
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 12)
+    local corner = Instance.new("UICorner", frame)
+    corner.CornerRadius = UDim.new(0, 12)
 
--- Intro Text
-local introTitle = Instance.new("TextLabel")
-introTitle.Text = "Justine Hub"
-introTitle.Size = UDim2.new(1, 0, 1, 0)
-introTitle.BackgroundTransparency = 1
-introTitle.Font = Enum.Font.GothamBold
-introTitle.TextSize = 16
-introTitle.TextColor3 = Color3.new(1, 1, 1)
-introTitle.TextStrokeTransparency = 0.8
-introTitle.TextTransparency = 1
-introTitle.Parent = frame
+    -- Intro Text
+    local introTitle = Instance.new("TextLabel")
+    introTitle.Text = config.introText or "Welcome to Justine Hub"
+    introTitle.Size = UDim2.new(1, 0, 1, 0)
+    introTitle.BackgroundTransparency = 1
+    introTitle.Font = Enum.Font.GothamBold
+    introTitle.TextSize = 16
+    introTitle.TextColor3 = Color3.new(1, 1, 1)
+    introTitle.TextStrokeTransparency = 0.8
+    introTitle.TextTransparency = 1
+    introTitle.Parent = frame
 
-frame.Visible = true
-TweenService:Create(frame, TweenInfo.new(1), {BackgroundTransparency = 0}):Play()
-TweenService:Create(introTitle, TweenInfo.new(1), {TextTransparency = 0}):Play()
+    TweenService:Create(frame, TweenInfo.new(1), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(introTitle, TweenInfo.new(1), {TextTransparency = 0}):Play()
 
-task.wait(2.5)
-introTitle:Destroy()
+    task.wait(5)
+    introTitle:Destroy()
 
--- Expand into rectangle after intro
-TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-	Size = UDim2.new(0, 600, 0, 400),
-	Position = UDim2.new(0.5, -300, 0.5, -200)
-}):Play()
+    -- Expand frame like a UI rectangle
+    TweenService:Create(frame, TweenInfo.new(1), {
+        Size = UDim2.new(0, 360, 0, 325),
+        Position = UDim2.new(0.5, -180, 0.5, -162)
+    }):Play()
 
-task.wait(0.5)
+    task.wait(1.1)
 
--- Add main title
-local title = Instance.new("TextLabel")
-title.Text = "Justine Hub by Justine"
-title.Size = UDim2.new(1, -10, 0, 20)
-title.Position = UDim2.new(0, 5, 0, 5)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextSize = 10
-title.TextColor3 = Color3.new(1, 1, 1)
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.Parent = frame
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Text = config.titleText or "Justine Hub by Justine"
+    title.Size = UDim2.new(1, -10, 0, 20)
+    title.Position = UDim2.new(0, 5, 0, 5)
+    title.BackgroundTransparency = 1
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 10
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = frame
 
--- Close button
-local closeBtn = Instance.new("TextButton")
-closeBtn.Text = "X"
-closeBtn.Size = UDim2.new(0, 25, 0, 25)
-closeBtn.Position = UDim2.new(1, -30, 0, 5)
-closeBtn.BackgroundTransparency = 1
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 14
-closeBtn.Parent = frame
+    -- Close Button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Text = "X"
+    closeBtn.Size = UDim2.new(0, 25, 0, 25)
+    closeBtn.Position = UDim2.new(1, -30, 0, 5)
+    closeBtn.BackgroundTransparency = 1
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 14
+    closeBtn.Parent = frame
 
--- Minimize button
-local minimizeBtn = Instance.new("TextButton")
-minimizeBtn.Text = "—"
-minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
-minimizeBtn.Position = UDim2.new(1, -60, 0, 5)
-minimizeBtn.BackgroundTransparency = 1
-minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
-minimizeBtn.Font = Enum.Font.GothamBold
-minimizeBtn.TextSize = 14
-minimizeBtn.Parent = frame
+    closeBtn.MouseButton1Click:Connect(function()
+        gui:Destroy()
+    end)
 
--- Frame dragging
-local dragging, dragInput, dragStart, startPos
+    -- Minimize Button
+    local minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Text = "—"
+    minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+    minimizeBtn.Position = UDim2.new(1, -60, 0, 5)
+    minimizeBtn.BackgroundTransparency = 1
+    minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
+    minimizeBtn.Font = Enum.Font.GothamBold
+    minimizeBtn.TextSize = 14
+    minimizeBtn.Parent = frame
 
-local function update(input)
-	local delta = input.Position - dragStart
-	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-		startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    minimizeBtn.MouseButton1Click:Connect(function()
+        frame.Visible = false
+    end)
+
+    -- Dragging Main Frame
+    local dragging, dragInput, dragStart, startPos
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+            startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+
+    -- Toggle Button
+    local toggleBtn = Instance.new("ImageButton")
+    toggleBtn.Size = UDim2.new(0, 60, 0, 60)
+    toggleBtn.Position = UDim2.new(0, 10, 0.5, -30)
+    toggleBtn.BackgroundTransparency = 1
+    toggleBtn.Image = "rbxassetid://118356508526283"
+    toggleBtn.Name = "JustineToggle"
+    toggleBtn.Parent = gui
+
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(1, 0)
+    toggleCorner.Parent = toggleBtn
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        frame.Visible = not frame.Visible
+    end)
+
+    -- Dragging Toggle Button
+    local toggleDragging = false
+    local toggleStart, togglePos, toggleDragInput
+
+    local function updateToggle(input)
+        local delta = input.Position - toggleStart
+        toggleBtn.Position = UDim2.new(togglePos.X.Scale, togglePos.X.Offset + delta.X,
+            togglePos.Y.Scale, togglePos.Y.Offset + delta.Y)
+    end
+
+    toggleBtn.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            toggleDragging = true
+            toggleStart = input.Position
+            togglePos = toggleBtn.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    toggleDragging = false
+                end
+            end)
+        end
+    end)
+
+    toggleBtn.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            toggleDragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == toggleDragInput and toggleDragging then
+            updateToggle(input)
+        end
+    end)
+
+    return frame
 end
-
-frame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-frame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		dragInput = input
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		update(input)
-	end
-end)
-
--- Toggle button (round image)
-local toggleBtn = Instance.new("ImageButton")
-toggleBtn.Size = UDim2.new(0, 60, 0, 60)
-toggleBtn.Position = UDim2.new(0, 10, 0.5, -30)
-toggleBtn.BackgroundTransparency = 1
-toggleBtn.Image = "rbxassetid://118356508526283"
-toggleBtn.Name = "JustineToggle"
-toggleBtn.Parent = gui
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(1, 0)
-toggleCorner.Parent = toggleBtn
-
--- Toggle frame visibility
-toggleBtn.MouseButton1Click:Connect(function()
-	frame.Visible = not frame.Visible
-end)
-
--- Draggable toggle
-local toggleDragging = false
-local toggleStart, togglePos, toggleDragInput
-
-local function updateToggle(input)
-	local delta = input.Position - toggleStart
-	toggleBtn.Position = UDim2.new(togglePos.X.Scale, togglePos.X.Offset + delta.X,
-		togglePos.Y.Scale, togglePos.Y.Offset + delta.Y)
-end
-
-toggleBtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		toggleDragging = true
-		toggleStart = input.Position
-		togglePos = toggleBtn.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				toggleDragging = false
-			end
-		end)
-	end
-end)
-
-toggleBtn.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		toggleDragInput = input
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if input == toggleDragInput and toggleDragging then
-		updateToggle(input)
-	end
-end)
-
--- Close and Minimize
-closeBtn.MouseButton1Click:Connect(function()
-	gui:Destroy()
-end)
-
-minimizeBtn.MouseButton1Click:Connect(function()
-	frame.Visible = false
-end)
