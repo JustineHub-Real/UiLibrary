@@ -1,143 +1,174 @@
--- JustineHub UI Library v1
-local JustineLib = {}
-
--- Services
-local Players = game:GetService("Players")
+-- Justine Hub GUI - Toggle Version with Rounded Draggable Button
 local TweenService = game:GetService("TweenService")
-local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
--- Main Setup
-function JustineLib:MakeWindow(info)
-    local windowTitle = info[1] or "Justine Hub UI"
-    local author = info[2] or "by Justine"
-    local configName = info[3] or "justinehub.json"
+local gui = Instance.new("ScreenGui")
+gui.Name = "JustineHubGUI"
+gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = game:GetService("CoreGui")
 
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "JustineHubUI"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.Parent = game:GetService("CoreGui")
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 250, 0, 100)
+frame.Position = UDim2.new(0.5, -125, 0.5, -50)
+frame.BackgroundTransparency = 1
+frame.BackgroundColor3 = Color3.fromRGB(0, 60, 130)
+frame.BorderSizePixel = 0
+frame.Parent = gui
 
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 500, 0, 350)
-    MainFrame.Position = UDim2.new(0.5, -250, 0.5, -175)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    MainFrame.BorderSizePixel = 0
-    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    MainFrame.Name = "MainFrame"
-    MainFrame.Parent = ScreenGui
+local gradient = Instance.new("UIGradient", frame)
+gradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 90, 150)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 40, 80))
+}
 
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 8)
-    UICorner.Parent = MainFrame
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 12)
 
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.BackgroundTransparency = 1
-    Title.Text = windowTitle .. " - " .. author
-    Title.Font = Enum.Font.GothamBold
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.TextSize = 18
-    Title.Parent = MainFrame
+local introTitle = Instance.new("TextLabel")
+introTitle.Text = "Justine Hub"
+introTitle.Size = UDim2.new(1, 0, 1, 0)
+introTitle.BackgroundTransparency = 1
+introTitle.Font = Enum.Font.GothamBold
+introTitle.TextSize = 16
+introTitle.TextColor3 = Color3.new(1, 1, 1)
+introTitle.TextStrokeTransparency = 0.8
+introTitle.TextTransparency = 1
+introTitle.Parent = frame
 
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, 0, 1, -40)
-    container.Position = UDim2.new(0, 0, 0, 40)
-    container.BackgroundTransparency = 1
-    container.Name = "Container"
-    container.Parent = MainFrame
+TweenService:Create(frame, TweenInfo.new(1), {BackgroundTransparency = 0}):Play()
+TweenService:Create(introTitle, TweenInfo.new(1), {TextTransparency = 0}):Play()
 
-    local UIListLayout = Instance.new("UIListLayout")
-    UIListLayout.Padding = UDim.new(0, 8)
-    UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    UIListLayout.Parent = container
+task.wait(5)
+introTitle:Destroy()
 
-    local windowObj = {}
+TweenService:Create(frame, TweenInfo.new(1), {
+	Size = UDim2.new(0, 360, 0, 325),
+	Position = UDim2.new(0.5, -180, 0.5, -162)
+}):Play()
 
-    function windowObj:MakeTab(tabInfo)
-        local tabName = tabInfo[1] or "Tab"
-        local newTab = {}
+task.wait(1.1)
 
-        local section = Instance.new("Frame")
-        section.Size = UDim2.new(1, -10, 0, 300)
-        section.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-        section.LayoutOrder = 1
-        section.Parent = container
+local title = Instance.new("TextLabel")
+title.Text = "Justine Hub by Justine"
+title.Size = UDim2.new(1, -10, 0, 20)
+title.Position = UDim2.new(0, 5, 0, 5)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextSize = 10
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = frame
 
-        local UICorner = Instance.new("UICorner")
-        UICorner.CornerRadius = UDim.new(0, 6)
-        UICorner.Parent = section
+local closeBtn = Instance.new("TextButton")
+closeBtn.Text = "X"
+closeBtn.Size = UDim2.new(0, 25, 0, 25)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 14
+closeBtn.Parent = frame
 
-        local sectionLayout = Instance.new("UIListLayout")
-        sectionLayout.Padding = UDim.new(0, 5)
-        sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        sectionLayout.Parent = section
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Text = "—"
+minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+minimizeBtn.Position = UDim2.new(1, -60, 0, 5)
+minimizeBtn.BackgroundTransparency = 1
+minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.TextSize = 14
+minimizeBtn.Parent = frame
 
-        function newTab:AddButton(data)
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, -10, 0, 35)
-            btn.Text = data.Name or "Button"
-            btn.Font = Enum.Font.Gotham
-            btn.TextSize = 14
-            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            btn.Parent = section
+local dragging, dragInput, dragStart, startPos
 
-            local UIC = Instance.new("UICorner")
-            UIC.CornerRadius = UDim.new(0, 5)
-            UIC.Parent = btn
-
-            btn.MouseButton1Click:Connect(function()
-                if data.Callback then
-                    pcall(data.Callback)
-                end
-            end)
-        end
-
-        function newTab:AddToggle(data)
-            local toggleFrame = Instance.new("Frame")
-            toggleFrame.Size = UDim2.new(1, -10, 0, 30)
-            toggleFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
-            toggleFrame.Parent = section
-
-            local UICorner = Instance.new("UICorner")
-            UICorner.CornerRadius = UDim.new(0, 5)
-            UICorner.Parent = toggleFrame
-
-            local txt = Instance.new("TextLabel")
-            txt.Text = data.Name or "Toggle"
-            txt.Font = Enum.Font.Gotham
-            txt.TextSize = 14
-            txt.TextColor3 = Color3.fromRGB(255, 255, 255)
-            txt.BackgroundTransparency = 1
-            txt.Size = UDim2.new(1, -40, 1, 0)
-            txt.Parent = toggleFrame
-
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(0, 30, 0, 30)
-            btn.Position = UDim2.new(1, -35, 0, 0)
-            btn.Text = data.Default and "ON" or "OFF"
-            btn.Font = Enum.Font.GothamBold
-            btn.TextSize = 12
-            btn.TextColor3 = Color3.new(1, 1, 1)
-            btn.BackgroundColor3 = data.Default and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(150, 0, 0)
-            btn.Parent = toggleFrame
-
-            local state = data.Default or false
-
-            btn.MouseButton1Click:Connect(function()
-                state = not state
-                btn.Text = state and "ON" or "OFF"
-                btn.BackgroundColor3 = state and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(150, 0, 0)
-                if data.Callback then
-                    pcall(data.Callback, state)
-                end
-            end)
-        end
-
-        return newTab
-    end
-
-    return windowObj
+local function update(input)
+	local delta = input.Position - dragStart
+	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+		startPos.Y.Scale, startPos.Y.Offset + delta.Y)
 end
 
-return JustineLib
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+local toggleBtn = Instance.new("ImageButton")
+toggleBtn.Size = UDim2.new(0, 60, 0, 60)
+toggleBtn.Position = UDim2.new(0, 10, 0.5, -30)
+toggleBtn.BackgroundTransparency = 1
+toggleBtn.Image = "rbxassetid://118356508526283"
+toggleBtn.Name = "JustineToggle"
+toggleBtn.Parent = gui
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(1, 0)
+toggleCorner.Parent = toggleBtn
+
+toggleBtn.MouseButton1Click:Connect(function()
+	frame.Visible = not frame.Visible
+end)
+
+local toggleDragging = false
+local toggleStart, togglePos, toggleDragInput
+
+local function updateToggle(input)
+	local delta = input.Position - toggleStart
+	toggleBtn.Position = UDim2.new(togglePos.X.Scale, togglePos.X.Offset + delta.X,
+		togglePos.Y.Scale, togglePos.Y.Offset + delta.Y)
+end
+
+toggleBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		toggleDragging = true
+		toggleStart = input.Position
+		togglePos = toggleBtn.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				toggleDragging = false
+			end
+		end)
+	end
+end)
+
+toggleBtn.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		toggleDragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == toggleDragInput and toggleDragging then
+		updateToggle(input)
+	end
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+	gui:Destroy()
+end)
+
+minimizeBtn.MouseButton1Click:Connect(function()
+	frame.Visible = false
+	task.wait(0.3)
+	frame.Visible = true
+end)
