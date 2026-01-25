@@ -458,7 +458,12 @@ function KazeUI:CreateWindow(config)
 	TabsScroller.Name = "TabsScroller"
 	TabsScroller.Size = UDim2.new(1, -16, 1, -16)
 	TabsScroller.Position = UDim2.new(0, 8, 0, 8)
-	TabsScroller.CanvasSize = UDim2.new(0, 0, 0, 0)
+	-- use automatic canvas sizing driven by UIListLayout for reliability
+	TabsScroller.Active = true
+	TabsScroller.ScrollingDirection = Enum.ScrollingDirection.Y
+	TabsScroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	-- keep elasticity on by default (toggle to false if you want less resistance)
+	TabsScroller.ElasticEnabled = true
 	TabsScroller.ScrollBarThickness = 6
 	TabsScroller.BackgroundTransparency = 1
 	TabsScroller.Parent = SideBar
@@ -476,11 +481,7 @@ function KazeUI:CreateWindow(config)
 	tabsPadding.PaddingBottom = UDim.new(0, 8)
 	tabsPadding.Parent = TabsScroller
 
-	-- Auto adjust canvas size when tabs added/removed
-	tabsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		local totalY = tabsLayout.AbsoluteContentSize.Y + 12
-		TabsScroller.CanvasSize = UDim2.new(0, 0, 0, totalY)
-	end)
+	-- Auto canvas sizing is handled by AutomaticCanvasSize now (no manual CanvasSize updates)
 
 	-- Table to track tabs
 	local createdTabs = {}
