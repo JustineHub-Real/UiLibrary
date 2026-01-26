@@ -1,5 +1,5 @@
--- Kaze UI Library (Fixed: Scrollable Tabs + Multi-line Button Descriptions)
--- Drop-in replacement. Paste this entire script.
+-- Kaze UI Library (Fixed: Scrollable Tabs + Multi-line Buttons + Perfect Alignment + Tab Order)
+-- Full drop-in replacement. Kazu approved. 💙
 local KazeUI = {}
 KazeUI.__index = KazeUI
 
@@ -47,8 +47,7 @@ local function MakeDraggable(dragPart, targetPart)
 	local dragInput, dragStart, startPos
 
 	local function update(input)
-		if not dragStart or not startPos then return end
-		local delta = input.Position - dragStart
+		if not dragStart or not startPos then return end		local delta = input.Position - dragStart
 		targetPart.Position = UDim2.new(
 			startPos.X.Scale, startPos.X.Offset + delta.X,
 			startPos.Y.Scale, startPos.Y.Offset + delta.Y
@@ -97,8 +96,7 @@ local function StartNeonLoop(target)
 
 			local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 			local ok, tween = pcall(function()
-				return TweenService:Create(target, tweenInfo, { [propName] = Color3.fromRGB(0, 255, 255) })
-			end)
+				return TweenService:Create(target, tweenInfo, { [propName] = Color3.fromRGB(0, 255, 255) })			end)
 			if ok and tween then tween:Play() end
 			break
 		end
@@ -147,8 +145,7 @@ local function CreateParagraph(parentFrame, strokeColor, title, body)
 	glow.AnchorPoint = Vector2.new(0.5, 0)
 	glow.Position = UDim2.new(0.5, 0, 0, 4)
 	glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 10)
-	glow.BackgroundTransparency = 0.96
-	glow.BackgroundColor3 = strokeColor or Color3.fromRGB(0,160,255)
+	glow.BackgroundTransparency = 0.96	glow.BackgroundColor3 = strokeColor or Color3.fromRGB(0,160,255)
 	Instance.new("UICorner", glow).CornerRadius = UDim.new(0, 10)
 	glow.Parent = wrapper
 	StartNeonLoop(glow)
@@ -197,8 +194,7 @@ local function CreateParagraph(parentFrame, strokeColor, title, body)
 		BodyLabel = bodyLabel,
 		SetText = function(self, newText)
 			newText = tostring(newText or "")
-			bodyLabel.Text = newText
-			task.defer(function()
+			bodyLabel.Text = newText			task.defer(function()
 				local w = measuredWidth
 				if parentFrame and parentFrame.AbsoluteSize and parentFrame.AbsoluteSize.X > 0 then
 					w = parentFrame.AbsoluteSize.X * 0.95
@@ -224,7 +220,7 @@ local function CreateParagraph(parentFrame, strokeColor, title, body)
 	return paraAPI
 end
 
--- NEW: CreateButton function (compact, glowing, supports multi-line description)
+-- NEW: CreateButton function (compact, glowing, perfectly aligned with your UI)
 local function CreateButton(parent, config)
 	config = config or {}
 	local title = config.Title or "Execute"
@@ -247,8 +243,7 @@ local function CreateButton(parent, config)
 	Instance.new("UICorner", visualBtn).CornerRadius = UDim.new(0, 8)
 
 	local btnStroke = Instance.new("UIStroke")
-	btnStroke.Color = Color3.fromRGB(0,160,255)
-	btnStroke.Thickness = 2
+	btnStroke.Color = Color3.fromRGB(0,160,255)	btnStroke.Thickness = 2
 	btnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	btnStroke.Parent = visualBtn
 	StartNeonLoop(btnStroke)
@@ -297,11 +292,12 @@ local function CreateButton(parent, config)
 	descLabel.AutomaticSize = Enum.AutomaticSize.Y
 	descLabel.Visible = description ~= ""
 	descLabel.Parent = content
-
+	-- ✅ PERFECTLY CENTERED ARROW (no more misalignment!)
 	local arrow = Instance.new("TextLabel")
 	arrow.BackgroundTransparency = 1
 	arrow.Size = UDim2.fromOffset(16, 16)
-	arrow.Position = UDim2.new(1, -20, 0.5, -8)
+	arrow.AnchorPoint = Vector2.new(0.5, 0.5)
+	arrow.Position = UDim2.new(1, -10, 0.5, 0) -- Centered vertically in button
 	arrow.Text = ">"
 	arrow.TextColor3 = Color3.fromRGB(0,200,255)
 	arrow.Font = Enum.Font.GothamBold
@@ -345,8 +341,7 @@ end
 function KazeUI:CreateWindow(config)
 	config = config or {}
 	local Title = config.Title or "Kaze UI"
-	local Author = config.Author or "Unknown"
-	local Version = config.Version or "1.0"
+	local Author = config.Author or "Unknown"	local Version = config.Version or "1.0"
 	local MainIcon = FormatImage(config.Icon or "6031763447")
 	local OpenIcon = FormatImage((config.OpenButton and config.OpenButton.Icon) or config.Icon or "6031763447")
 	local MiniButtonSize = UDim2.fromOffset(60, 60)
@@ -395,8 +390,7 @@ function KazeUI:CreateWindow(config)
 	avatarStroke.Thickness = 1
 
 	local TitleLabel = Instance.new("TextLabel")
-	TitleLabel.Size = UDim2.new(1, -220, 0, 22)
-	TitleLabel.Position = UDim2.fromOffset(56,8)
+	TitleLabel.Size = UDim2.new(1, -220, 0, 22)	TitleLabel.Position = UDim2.fromOffset(56,8)
 	TitleLabel.BackgroundTransparency = 1
 	TitleLabel.Text = Title
 	TitleLabel.TextColor3 = Color3.fromRGB(235,235,235)
@@ -445,8 +439,7 @@ function KazeUI:CreateWindow(config)
 		btn.Name = name
 		btn.Size = UDim2.fromOffset(18,18)
 		btn.Position = UDim2.new(1, offsetX, 0.5, -9)
-		btn.BackgroundColor3 = color
-		btn.BorderSizePixel = 0
+		btn.BackgroundColor3 = color		btn.BorderSizePixel = 0
 		btn.Text = ""
 		btn.Parent = TopBar
 		Instance.new("UICorner", btn).CornerRadius = UDim.new(1,0)
@@ -496,7 +489,6 @@ function KazeUI:CreateWindow(config)
 
 	MakeDraggable(TopBar, Window)
 	MakeDraggable(MiniButton, MiniButton)
-
 	local function minimizeWindow()
 		Window.Visible = false
 		MiniButton.Visible = true
@@ -545,8 +537,7 @@ function KazeUI:CreateWindow(config)
 		Overlay.Size = UDim2.new(1,0,1,0)
 		Overlay.BackgroundColor3 = Color3.fromRGB(0,0,0)
 		Overlay.BackgroundTransparency = 0.6
-		Overlay.ZIndex = 50
-		Overlay.Parent = Window
+		Overlay.ZIndex = 50		Overlay.Parent = Window
 
 		local Shadow = Instance.new("Frame")
 		Shadow.Size = UDim2.fromOffset(364,164)
@@ -595,8 +586,7 @@ function KazeUI:CreateWindow(config)
 
 		local layout = Instance.new("UIListLayout", ButtonsFrame)
 		layout.FillDirection = Enum.FillDirection.Horizontal
-		layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-		layout.Padding = UDim.new(0,16)
+		layout.HorizontalAlignment = Enum.HorizontalAlignment.Center		layout.Padding = UDim.new(0,16)
 
 		local ConfirmBtn = Instance.new("TextButton")
 		ConfirmBtn.Size = UDim2.new(0,120,0,36)
@@ -645,7 +635,6 @@ function KazeUI:CreateWindow(config)
 	SideBar.BorderSizePixel = 0
 	SideBar.Parent = Content
 	Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0,14)
-
 	-- Divider
 	local VertDivider = Instance.new("Frame")
 	VertDivider.Name = "VertDivider"
@@ -695,8 +684,7 @@ function KazeUI:CreateWindow(config)
 	tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	tabsLayout.Padding = UDim.new(0,8)
 
-	-- Tab storage
-	local createdTabs = {}
+	-- Tab storage	local createdTabs = {}
 
 	-- Appearance
 	local TAB_BUTTON_HEIGHT = 44
@@ -734,6 +722,9 @@ function KazeUI:CreateWindow(config)
 		btn.Parent = TabsList
 		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, TAB_CORNER_RADIUS)
 
+		-- ✅ SET LAYOUT ORDER TO APPEND AT BOTTOM
+		btn.LayoutOrder = #self._Tabs + 1
+
 		local leftIndicator = Instance.new("Frame", btn)
 		leftIndicator.Name = "LeftIndicator"
 		leftIndicator.Size = UDim2.new(0,4,1,0)
@@ -742,7 +733,6 @@ function KazeUI:CreateWindow(config)
 		leftIndicator.BorderSizePixel = 0
 		leftIndicator.Visible = false
 		Instance.new("UICorner", leftIndicator).CornerRadius = UDim.new(0,6)
-
 		local iconLabel = Instance.new("ImageLabel", btn)
 		iconLabel.Name = "Icon"
 		iconLabel.Size = UDim2.fromOffset(28,28)
@@ -792,8 +782,7 @@ function KazeUI:CreateWindow(config)
 			Icon = iconLabel,
 			Page = page,
 			PageContent = pageContent,
-		}
-		table.insert(self._Tabs, tabObj)
+		}		table.insert(self._Tabs, tabObj)
 
 		-- activation
 		local function activate()
@@ -842,8 +831,7 @@ function KazeUI:CreateWindow(config)
 			_Stroke = self._Stroke,
 		}
 
-		-- Allow direct Paragraph creation on tab
-		function public:Paragraph(ptitle, pbody)
+		-- Allow direct Paragraph creation on tab		function public:Paragraph(ptitle, pbody)
 			return CreateParagraph(self._PageContent, self._Stroke.Color, ptitle, pbody)
 		end
 
@@ -892,8 +880,7 @@ function KazeUI:CreateWindow(config)
 			local sep = Instance.new("Frame")
 			sep.Name = "SectionSeparator"
 			sep.Size = UDim2.new(0.6, 0, 0, 2)
-			sep.BackgroundColor3 = Color3.fromRGB(38,38,42)
-			sep.BorderSizePixel = 0
+			sep.BackgroundColor3 = Color3.fromRGB(38,38,42)			sep.BorderSizePixel = 0
 			sep.Parent = sectionFrame
 			Instance.new("UICorner", sep).CornerRadius = UDim.new(0,4)
 
@@ -942,8 +929,7 @@ function KazeUI:CreateWindow(config)
 	function Win:GetTabs()
 		local out = {}
 		for i,t in ipairs(self._Tabs) do
-			table.insert(out, { Index = i, Button = t.Button, Page = t.Page })
-		end
+			table.insert(out, { Index = i, Button = t.Button, Page = t.Page })		end
 		return out
 	end
 
