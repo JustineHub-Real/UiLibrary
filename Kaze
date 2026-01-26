@@ -1,9 +1,7 @@
--- Kaze UI Library (full) — fixes:
---  - Buttons: clicking Title/Desc no longer triggers the action (only the right arrow/button triggers)
---  - Tab:AddParagraph alias added (prevents "missing method 'AddParagraph'" errors)
---  - Glow/background transparency increased and sized to avoid the dark "blob" issue
---  - General defensive checks to avoid nil indexing
--- Drop this file in place of your existing KazeUI.lua
+-- Kaze UI Library (separator centered under Section)
+-- Full file (drop-in replacement). Change: Section separator is now centered.
+-- The Section uses a UIListLayout with HorizontalAlignment = Center and the separator
+-- uses a fixed fractional width so it stays centered and visually balanced.
 
 local KazeUI = {}
 KazeUI.__index = KazeUI
@@ -26,7 +24,7 @@ ScreenGui.Parent = LP:WaitForChild("PlayerGui")
 local UIScale = Instance.new("UIScale")
 UIScale.Parent = ScreenGui
 local function UpdateScale()
-	local size = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+	local size = workspace.CurrentCamera.ViewportSize
 	if size.X < 600 then
 		UIScale.Scale = math.clamp(size.X / 800, 0.5, 1)
 	else
@@ -34,9 +32,7 @@ local function UpdateScale()
 	end
 end
 UpdateScale()
-if workspace.CurrentCamera then
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateScale)
-end
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateScale)
 
 -- Helpers
 local function FormatImage(id)
@@ -83,7 +79,7 @@ local function MakeDraggable(dragPart, targetPart)
 	end)
 end
 
--- Neon loop (safe)
+-- Safe neon loop
 local function StartNeonLoop(target)
 	if not target then return end
 	spawn(function()
@@ -97,7 +93,7 @@ local function StartNeonLoop(target)
 			if not propName then break end
 			local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 			local ok, tween = pcall(function()
-				return TweenService:Create(target, tweenInfo, { [propName] = Color3.fromRGB(0,255,255) })
+				return TweenService:Create(target, tweenInfo, { [propName] = Color3.fromRGB(0, 255, 255) })
 			end)
 			if ok and tween then tween:Play() end
 			break
@@ -144,7 +140,7 @@ function KazeUI:CreateWindow(config)
 	Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0,14)
 	MakeDraggable(TopBar, Window)
 
-	-- Avatar + labels
+	-- Avatar + texts
 	local Avatar = Instance.new("ImageLabel")
 	Avatar.Name = "Avatar"
 	Avatar.Size = UDim2.fromOffset(36,36)
@@ -179,7 +175,7 @@ function KazeUI:CreateWindow(config)
 	SubLabel.TextXAlignment = Enum.TextXAlignment.Left
 	SubLabel.Parent = TopBar
 
-	-- Top Divider
+	-- Top divider
 	local TopDivider = Instance.new("Frame")
 	TopDivider.Name = "TopDivider"
 	TopDivider.Size = UDim2.new(1,0,0,2)
@@ -190,14 +186,12 @@ function KazeUI:CreateWindow(config)
 	TopDivider.Parent = TopBar
 	Instance.new("UICorner", TopDivider).CornerRadius = UDim.new(0,6)
 	local topDivStroke = Instance.new("UIStroke", TopDivider)
-	if WindowStroke then
-		topDivStroke.Color = WindowStroke.Color
-		topDivStroke.Thickness = WindowStroke.Thickness
-		topDivStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		StartNeonLoop(topDivStroke)
-	end
+	topDivStroke.Color = WindowStroke.Color
+	topDivStroke.Thickness = WindowStroke.Thickness
+	topDivStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	StartNeonLoop(topDivStroke)
 
-	-- Traffic lights and mini button (unchanged)
+	-- Traffic lights
 	local defaultWindowSize = UDim2.fromOffset(650,420)
 	local lastNormalSize = defaultWindowSize
 	local lastNormalPosition = UDim2.fromScale(0.5,0.5)
@@ -222,6 +216,7 @@ function KazeUI:CreateWindow(config)
 	local BtnYellow = createCircleButton("BtnYellow", -88, Color3.fromRGB(255,204,51))
 	local BtnRed = createCircleButton("BtnRed", -56, Color3.fromRGB(235,80,80))
 
+	-- MiniButton
 	local MiniButton = Instance.new("ImageButton")
 	MiniButton.Name = "MiniButton"
 	MiniButton.Size = MiniButtonSize
@@ -246,13 +241,11 @@ function KazeUI:CreateWindow(config)
 	MiniIcon.Parent = MiniButton
 	MiniIcon.ZIndex = 1000
 	local MiniStroke = Instance.new("UIStroke")
-	if WindowStroke then
-		MiniStroke.Color = WindowStroke.Color
-		MiniStroke.Thickness = WindowStroke.Thickness
-		MiniStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		MiniStroke.Parent = MiniButton
-		StartNeonLoop(MiniStroke)
-	end
+	MiniStroke.Color = WindowStroke.Color
+	MiniStroke.Thickness = WindowStroke.Thickness
+	MiniStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	MiniStroke.Parent = MiniButton
+	StartNeonLoop(MiniStroke)
 
 	MakeDraggable(TopBar, Window)
 	MakeDraggable(MiniButton, MiniButton)
@@ -327,12 +320,10 @@ function KazeUI:CreateWindow(config)
 		Instance.new("UICorner", ConfirmWindow).CornerRadius = UDim.new(0,12)
 
 		local confirmStroke = Instance.new("UIStroke", ConfirmWindow)
-		if WindowStroke then
-			confirmStroke.Color = WindowStroke.Color
-			confirmStroke.Thickness = 2.5
-			confirmStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-			StartNeonLoop(confirmStroke)
-		end
+		confirmStroke.Color = WindowStroke.Color
+		confirmStroke.Thickness = 2.5
+		confirmStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		StartNeonLoop(confirmStroke)
 
 		local ConfirmText = Instance.new("TextLabel")
 		ConfirmText.Size = UDim2.new(1,-32,0,48)
@@ -411,17 +402,15 @@ function KazeUI:CreateWindow(config)
 	VertDivider.Name = "VertDivider"
 	VertDivider.Size = UDim2.new(0,2,1,0)
 	VertDivider.Position = UDim2.new(0,180,0,0)
-	VertDivider.BackgroundColor3 = WindowStroke and WindowStroke.Color or Color3.fromRGB(0,160,255)
+	VertDivider.BackgroundColor3 = WindowStroke.Color
 	VertDivider.BorderSizePixel = 0
 	VertDivider.Parent = Content
 	Instance.new("UICorner", VertDivider).CornerRadius = UDim.new(0,6)
 	local vertDivStroke = Instance.new("UIStroke", VertDivider)
-	if WindowStroke then
-		vertDivStroke.Color = WindowStroke.Color
-		vertDivStroke.Thickness = WindowStroke.Thickness
-		vertDivStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-		StartNeonLoop(vertDivStroke)
-	end
+	vertDivStroke.Color = WindowStroke.Color
+	vertDivStroke.Thickness = WindowStroke.Thickness
+	vertDivStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	StartNeonLoop(vertDivStroke)
 
 	-- Pages
 	local Pages = Instance.new("Frame")
@@ -433,7 +422,7 @@ function KazeUI:CreateWindow(config)
 	Pages.Parent = Content
 	Instance.new("UICorner", Pages).CornerRadius = UDim.new(0,12)
 
-	-- TabsList
+	-- Tabs list
 	local TabsList = Instance.new("ScrollingFrame")
 	TabsList.Name = "TabsList"
 	TabsList.Parent = SideBar
@@ -448,10 +437,10 @@ function KazeUI:CreateWindow(config)
 	tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	tabsLayout.Padding = UDim.new(0,8)
 
-	-- tab storage
+	-- Tab storage
 	local createdTabs = {}
 
-	-- appearance
+	-- Appearance
 	local TAB_BUTTON_HEIGHT = 44
 	local TAB_CORNER_RADIUS = 6
 	local TAB_BG = Color3.fromRGB(24,24,28)
@@ -459,7 +448,7 @@ function KazeUI:CreateWindow(config)
 	local TAB_TEXT_COLOR = Color3.fromRGB(240,240,240)
 	local TAB_TEXT_INACTIVE = Color3.fromRGB(200,200,200)
 
-	-- Win wrapper
+	-- Window wrapper
 	local Win = {
 		Window = Window,
 		Content = Content,
@@ -491,7 +480,7 @@ function KazeUI:CreateWindow(config)
 		leftIndicator.Name = "LeftIndicator"
 		leftIndicator.Size = UDim2.new(0,4,1,0)
 		leftIndicator.Position = UDim2.new(0,0,0,0)
-		leftIndicator.BackgroundColor3 = (self._Stroke and self._Stroke.Color) or Color3.fromRGB(0,160,255)
+		leftIndicator.BackgroundColor3 = self._Stroke.Color
 		leftIndicator.BorderSizePixel = 0
 		leftIndicator.Visible = false
 		Instance.new("UICorner", leftIndicator).CornerRadius = UDim.new(0,6)
@@ -546,7 +535,7 @@ function KazeUI:CreateWindow(config)
 		}
 		table.insert(self._Tabs, tabObj)
 
-		-- activate
+		-- activation
 		local function activate()
 			for _, t in ipairs(self._Tabs) do
 				if t.Button and t.Indicator and t.Page and t.Label then
@@ -596,7 +585,7 @@ function KazeUI:CreateWindow(config)
 			SetText = function(newText) txt.Text = tostring(newText or "") end,
 		}
 
-		-- Section API
+		-- Section API: centered separator fix
 		function public:Section(title)
 			title = tostring(title or "")
 
@@ -608,12 +597,14 @@ function KazeUI:CreateWindow(config)
 			sectionFrame.Parent = self._PageContent
 			sectionFrame.AutomaticSize = Enum.AutomaticSize.Y
 
+			-- UIListLayout that centers children horizontally
 			local sectionLayout = Instance.new("UIListLayout", sectionFrame)
 			sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
 			sectionLayout.Padding = UDim.new(0, 6)
 			sectionLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-			sectionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center -- center children
+			sectionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center -- CENTER children
 
+			-- Title
 			local titleLabel = Instance.new("TextLabel")
 			titleLabel.Name = "SectionTitle"
 			titleLabel.Size = UDim2.new(1, 0, 0, 36)
@@ -626,16 +617,16 @@ function KazeUI:CreateWindow(config)
 			titleLabel.TextXAlignment = Enum.TextXAlignment.Center
 			titleLabel.Parent = sectionFrame
 
-			-- centered separator (fractional width)
+			-- Centered separator: give it fractional (not full) width so it centers nicely
 			local sep = Instance.new("Frame")
 			sep.Name = "SectionSeparator"
-			sep.Size = UDim2.new(0.6, 0, 0, 2) -- 60% width
+			sep.Size = UDim2.new(0.6, 0, 0, 2) -- 60% width, centered by UIListLayout.HorizontalAlignment
 			sep.BackgroundColor3 = Color3.fromRGB(38,38,42)
 			sep.BorderSizePixel = 0
 			sep.Parent = sectionFrame
 			Instance.new("UICorner", sep).CornerRadius = UDim.new(0,4)
 
-			-- sectionContent (centered children)
+			-- sectionContent holds centered children
 			local sectionContent = Instance.new("Frame")
 			sectionContent.Name = "SectionContent"
 			sectionContent.Size = UDim2.new(1, 0, 0, 0)
@@ -650,7 +641,7 @@ function KazeUI:CreateWindow(config)
 			secLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 			secLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 
-			-- Section API
+			-- Section public API
 			local sectionPublic = {}
 			sectionPublic.Frame = sectionFrame
 			sectionPublic.TitleLabel = titleLabel
@@ -668,11 +659,11 @@ function KazeUI:CreateWindow(config)
 				return label
 			end
 
-			-- AddParagraph (centered inside section)
 			function sectionPublic:AddParagraph(ptitle, pbody)
 				ptitle = tostring(ptitle or "")
 				pbody = tostring(pbody or "")
 
+				-- measure width and text sizes
 				local measuredWidth = 520
 				if sectionContent and sectionContent.AbsoluteSize and sectionContent.AbsoluteSize.X and sectionContent.AbsoluteSize.X > 0 then
 					measuredWidth = sectionContent.AbsoluteSize.X * 0.95
@@ -687,7 +678,7 @@ function KazeUI:CreateWindow(config)
 				local bodyHeight = math.ceil(bodySize.Y)
 				local totalHeight = 10 + titleHeight + 6 + bodyHeight + 10
 
-				-- wrapper auto-sized
+				-- wrapper auto-sized so layout is tight
 				local wrapper = Instance.new("Frame")
 				wrapper.Name = "ParagraphWrapper"
 				wrapper.Size = UDim2.new(1, 0, 0, 0)
@@ -695,36 +686,34 @@ function KazeUI:CreateWindow(config)
 				wrapper.Parent = sectionContent
 				wrapper.AutomaticSize = Enum.AutomaticSize.Y
 
-				-- glow (very faint, prevent dark blob)
+				-- paragraph frame centered
+				local paraFrame = Instance.new("Frame")
+				paraFrame.Name = "Paragraph"
+				paraFrame.AnchorPoint = Vector2.new(0.5, 0)
+				paraFrame.Position = UDim2.new(0.5, 0, 0, 6)
+				paraFrame.Size = UDim2.new(0.95, 0, 0, totalHeight)
+				paraFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
+				paraFrame.BorderSizePixel = 0
+				Instance.new("UICorner", paraFrame).CornerRadius = UDim.new(0,8)
+				paraFrame.Parent = wrapper
+				paraFrame.ZIndex = 2
+
+				-- faint glow
 				local glow = Instance.new("Frame")
 				glow.Name = "ParagraphGlow"
 				glow.AnchorPoint = Vector2.new(0.5,0)
-				glow.Position = UDim2.new(0.5, 0, 0, 6)
-				glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 12)
-				glow.BackgroundTransparency = 0.985 -- increased transparency to avoid dark blob
-				glow.BorderSizePixel = 0
-				glow.Parent = wrapper
-				Instance.new("UICorner", glow).CornerRadius = UDim.new(0,10)
+				glow.Position = UDim2.new(0.5, 0, 0, 4)
+				glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 10)
+				glow.BackgroundTransparency = 0.96
 				if Win._Stroke and Win._Stroke.Color then
 					glow.BackgroundColor3 = Win._Stroke.Color
 				else
 					glow.BackgroundColor3 = Color3.fromRGB(0,160,255)
 				end
+				Instance.new("UICorner", glow).CornerRadius = UDim.new(0,10)
+				glow.Parent = wrapper
 				StartNeonLoop(glow)
 
-				-- paragraph frame
-				local paraFrame = Instance.new("Frame")
-				paraFrame.Name = "Paragraph"
-				paraFrame.AnchorPoint = Vector2.new(0.5,0)
-				paraFrame.Position = UDim2.new(0.5, 0, 0, 6)
-				paraFrame.Size = UDim2.new(0.95, 0, 0, totalHeight)
-				paraFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
-				paraFrame.BorderSizePixel = 0
-				paraFrame.Parent = wrapper
-				Instance.new("UICorner", paraFrame).CornerRadius = UDim.new(0,8)
-				paraFrame.ZIndex = 2
-
-				-- stroke
 				local paraStroke = Instance.new("UIStroke", paraFrame)
 				paraStroke.Thickness = 2
 				paraStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -735,7 +724,6 @@ function KazeUI:CreateWindow(config)
 				end
 				StartNeonLoop(paraStroke)
 
-				-- inner padding
 				local inner = Instance.new("Frame", paraFrame)
 				inner.Size = UDim2.new(1, -20, 1, -20)
 				inner.Position = UDim2.fromOffset(10,10)
@@ -789,163 +777,23 @@ function KazeUI:CreateWindow(config)
 							local newBodyH = math.ceil(newBodySize.Y)
 							local newTotal = 10 + newTitleH + 6 + newBodyH + 10
 							paraFrame.Size = UDim2.new(0.95,0,0,newTotal)
-							glow.Size = UDim2.new(0.96,0,0,newTotal + 12)
+							glow.Size = UDim2.new(0.96,0,0,newTotal + 10)
 							if paraFrame:FindFirstChild("ParagraphTitle") then
 								paraFrame.ParagraphTitle.Size = UDim2.new(1,0,0,newTitleH)
 							end
 							bodyLabel.Size = UDim2.new(1,0,0,newBodyH)
-							wrapper.Size = UDim2.new(1,0,0,newTotal + 14)
+							wrapper.Size = UDim2.new(1,0,0,newTotal + 12)
 						end)
 					end,
 				}
 				return paraAPI
 			end
 
-			-- AddButton inside section (small / compact). Only right arrow triggers callback now.
-			function sectionPublic:AddButton(opts)
-				opts = opts or {}
-				local title = tostring(opts.Title or "Button")
-				local desc = tostring(opts.Desc or "")
-				local callback = (type(opts.Callback) == "function") and opts.Callback or nil
-
-				local measuredWidth = 520
-				if sectionContent and sectionContent.AbsoluteSize and sectionContent.AbsoluteSize.X and sectionContent.AbsoluteSize.X > 0 then
-					measuredWidth = sectionContent.AbsoluteSize.X * 0.95
-				end
-
-				local titleH = 20
-				local descSize = TextService:GetTextSize(desc, 14, Enum.Font.Gotham, Vector2.new(measuredWidth - 96, 1000))
-				local descH = math.max(18, math.ceil(descSize.Y))
-				local buttonHeight = math.max(42, 10 + titleH + 6 + descH + 6)
-
-				local wrapper = Instance.new("Frame")
-				wrapper.Name = "ButtonWrapper"
-				wrapper.Size = UDim2.new(1, 0, 0, 0)
-				wrapper.BackgroundTransparency = 1
-				wrapper.Parent = sectionContent
-				wrapper.AutomaticSize = Enum.AutomaticSize.Y
-
-				local glow = Instance.new("Frame")
-				glow.Name = "ButtonGlow"
-				glow.AnchorPoint = Vector2.new(0.5,0)
-				glow.Position = UDim2.new(0.5, 0, 0, 6)
-				glow.Size = UDim2.new(0.96, 0, 0, buttonHeight + 12)
-				glow.BackgroundTransparency = 0.985
-				if Win._Stroke and Win._Stroke.Color then
-					glow.BackgroundColor3 = Win._Stroke.Color
-				else
-					glow.BackgroundColor3 = Color3.fromRGB(0,160,255)
-				end
-				Instance.new("UICorner", glow).CornerRadius = UDim.new(0,8)
-				glow.Parent = wrapper
-				StartNeonLoop(glow)
-
-				local btnFrame = Instance.new("Frame")
-				btnFrame.Name = "Button"
-				btnFrame.AnchorPoint = Vector2.new(0.5,0)
-				btnFrame.Position = UDim2.new(0.5, 0, 0, 6)
-				btnFrame.Size = UDim2.new(0.95, 0, 0, buttonHeight)
-				btnFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
-				btnFrame.BorderSizePixel = 0
-				btnFrame.Parent = wrapper
-				Instance.new("UICorner", btnFrame).CornerRadius = UDim.new(0,8)
-				btnFrame.ZIndex = 2
-
-				local btnStroke = Instance.new("UIStroke", btnFrame)
-				btnStroke.Thickness = 2
-				btnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-				if Win._Stroke and Win._Stroke.Color then
-					btnStroke.Color = Win._Stroke.Color
-				else
-					btnStroke.Color = Color3.fromRGB(0,160,255)
-				end
-				StartNeonLoop(btnStroke)
-
-				local left = Instance.new("Frame", btnFrame)
-				left.Name = "Left"
-				left.Size = UDim2.new(1, -56, 1, 0)
-				left.Position = UDim2.fromOffset(8, 0)
-				left.BackgroundTransparency = 1
-
-				local titleLabel = Instance.new("TextLabel", left)
-				titleLabel.Name = "ButtonTitle"
-				titleLabel.Size = UDim2.new(1, 0, 0, 20)
-				titleLabel.Position = UDim2.fromOffset(0, 6)
-				titleLabel.BackgroundTransparency = 1
-				titleLabel.Text = title
-				titleLabel.TextColor3 = Color3.fromRGB(0,160,255)
-				titleLabel.Font = Enum.Font.GothamBold
-				titleLabel.TextSize = 16
-				titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-				local underline = Instance.new("Frame", left)
-				underline.Name = "ButtonUnderline"
-				underline.Size = UDim2.new(1, -12, 0, 2)
-				underline.Position = UDim2.fromOffset(0, 28)
-				underline.BackgroundColor3 = (Win._Stroke and Win._Stroke.Color) or Color3.fromRGB(0,160,255)
-				Instance.new("UICorner", underline).CornerRadius = UDim.new(0,2)
-				StartNeonLoop(underline)
-
-				local descLabel = Instance.new("TextLabel", left)
-				descLabel.Name = "ButtonDesc"
-				descLabel.Size = UDim2.new(1, 0, 0, descH)
-				descLabel.Position = UDim2.fromOffset(0, 34)
-				descLabel.BackgroundTransparency = 1
-				descLabel.Text = desc
-				descLabel.TextColor3 = Color3.fromRGB(230,230,230)
-				descLabel.Font = Enum.Font.Gotham
-				descLabel.TextSize = 14
-				descLabel.TextWrapped = true
-				descLabel.TextXAlignment = Enum.TextXAlignment.Left
-				descLabel.TextYAlignment = Enum.TextYAlignment.Top
-
-				-- Right arrow button (only this receives click)
-				local right = Instance.new("TextButton", btnFrame)
-				right.Name = "RightButton"
-				right.Size = UDim2.new(0, 48, 1, -12)
-				right.Position = UDim2.new(1, -56, 0, 6)
-				right.AnchorPoint = Vector2.new(0, 0)
-				right.BackgroundColor3 = Color3.fromRGB(10,20,30)
-				right.BorderSizePixel = 0
-				right.Text = ">"
-				right.Font = Enum.Font.GothamBold
-				right.TextSize = 22
-				right.TextColor3 = Color3.fromRGB(0,160,255)
-				Instance.new("UICorner", right).CornerRadius = UDim.new(0,6)
-
-				-- only the right button triggers the callback (prevents accidental clicks on title/desc)
-				right.MouseButton1Click:Connect(function()
-					if callback then
-						pcall(callback)
-					end
-					-- small pop animation on btnFrame
-					local t1 = TweenService:Create(btnFrame, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0.95, 0, 0, math.max(40, buttonHeight - 2))})
-					local t2 = TweenService:Create(btnFrame, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0.95, 0, 0, buttonHeight)})
-					t1:Play()
-					t1.Completed:Wait()
-					t2:Play()
-				end)
-
-				local btnAPI = {
-					Wrapper = wrapper,
-					Frame = btnFrame,
-					TitleLabel = titleLabel,
-					DescLabel = descLabel,
-					SetText = function(self, newTitle, newDesc)
-						if newTitle then titleLabel.Text = tostring(newTitle) end
-						if newDesc then descLabel.Text = tostring(newDesc) end
-					end,
-					Destroy = function(self) wrapper:Destroy() end,
-				}
-				return btnAPI
-			end
-
 			return sectionPublic
 		end
 
-		-- Tab:Paragraph (backwards compatibility / page paragraph)
+		-- Tab-level Paragraph (centered in page)
 		function public:Paragraph(ptitle, pbody)
-			-- delegate to page-centered paragraph creation (keeps same behavior)
 			ptitle = tostring(ptitle or "")
 			pbody = tostring(pbody or "")
 
@@ -971,20 +819,6 @@ function KazeUI:CreateWindow(config)
 			wrapper.Parent = pageContentRef
 			wrapper.AutomaticSize = Enum.AutomaticSize.Y
 
-			local glow = Instance.new("Frame", wrapper)
-			glow.Name = "ParagraphGlow"
-			glow.AnchorPoint = Vector2.new(0.5,0)
-			glow.Position = UDim2.new(0.5, 0, 0, 6)
-			glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 14)
-			glow.BackgroundTransparency = 0.985
-			if self._Stroke and self._Stroke.Color then
-				glow.BackgroundColor3 = self._Stroke.Color
-			else
-				glow.BackgroundColor3 = Color3.fromRGB(0,160,255)
-			end
-			Instance.new("UICorner", glow).CornerRadius = UDim.new(0,10)
-			StartNeonLoop(glow)
-
 			local paraFrame = Instance.new("Frame", wrapper)
 			paraFrame.Name = "Paragraph"
 			paraFrame.AnchorPoint = Vector2.new(0.5,0)
@@ -992,6 +826,20 @@ function KazeUI:CreateWindow(config)
 			paraFrame.Size = UDim2.new(0.95, 0, 0, totalHeight)
 			paraFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
 			Instance.new("UICorner", paraFrame).CornerRadius = UDim.new(0,8)
+
+			local glow = Instance.new("Frame", wrapper)
+			glow.Name = "ParagraphGlow"
+			glow.AnchorPoint = Vector2.new(0.5,0)
+			glow.Position = UDim2.new(0.5, 0, 0, 4)
+			glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 10)
+			glow.BackgroundTransparency = 0.96
+			if self._Stroke and self._Stroke.Color then
+				glow.BackgroundColor3 = self._Stroke.Color
+			else
+				glow.BackgroundColor3 = Color3.fromRGB(0,160,255)
+			end
+			Instance.new("UICorner", glow).CornerRadius = UDim.new(0,10)
+			StartNeonLoop(glow)
 
 			local paraStroke = Instance.new("UIStroke", paraFrame)
 			paraStroke.Thickness = 2
@@ -1009,17 +857,17 @@ function KazeUI:CreateWindow(config)
 			inner.BackgroundTransparency = 1
 
 			if ptitle ~= "" then
-				local titleLabel = Instance.new("TextLabel", inner)
-				titleLabel.Name = "ParagraphTitle"
-				titleLabel.Size = UDim2.new(1,0,0,titleHeight)
-				titleLabel.Position = UDim2.fromOffset(0,0)
-				titleLabel.BackgroundTransparency = 1
-				titleLabel.Text = ptitle
-				titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
-				titleLabel.Font = Enum.Font.GothamBold
-				titleLabel.TextSize = 16
-				titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-				titleLabel.TextWrapped = true
+				local ptitleLabel = Instance.new("TextLabel", inner)
+				ptitleLabel.Name = "ParagraphTitle"
+				ptitleLabel.Size = UDim2.new(1,0,0,titleHeight)
+				ptitleLabel.Position = UDim2.fromOffset(0,0)
+				ptitleLabel.BackgroundTransparency = 1
+				ptitleLabel.Text = ptitle
+				ptitleLabel.TextColor3 = Color3.fromRGB(255,255,255)
+				ptitleLabel.Font = Enum.Font.GothamBold
+				ptitleLabel.TextSize = 16
+				ptitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+				ptitleLabel.TextWrapped = true
 			end
 
 			local bodyLabel = Instance.new("TextLabel", inner)
@@ -1056,8 +904,8 @@ function KazeUI:CreateWindow(config)
 						local newBodyH2 = math.ceil(newBodySize2.Y)
 						local newTotal = 10 + newTitleH + 6 + newBodyH2 + 10
 						paraFrame.Size = UDim2.new(0.95,0,0,newTotal)
-						glow.Size = UDim2.new(0.96,0,0,newTotal + 14)
-						wrapper.Size = UDim2.new(1,0,0,newTotal + 20)
+						glow.Size = UDim2.new(0.96,0,0,newTotal + 10)
+						wrapper.Size = UDim2.new(1,0,0,newTotal + 12)
 						if paraFrame:FindFirstChild("ParagraphTitle") then
 							paraFrame.ParagraphTitle.Size = UDim2.new(1,0,0,newTitleH)
 						end
@@ -1068,155 +916,16 @@ function KazeUI:CreateWindow(config)
 			return publicPara
 		end
 
-		-- Tab-level CreateButton (page centered) — only arrow triggers click
-		function public:CreateButton(opts)
-			opts = opts or {}
-			local title = tostring(opts.Title or "Button")
-			local desc = tostring(opts.Desc or "")
-			local callback = (type(opts.Callback) == "function") and opts.Callback or nil
-
-			local pageContentRef = self._PageContent
-			local measuredWidth = 520
-			if pageContentRef and pageContentRef.AbsoluteSize and pageContentRef.AbsoluteSize.X and pageContentRef.AbsoluteSize.X > 0 then
-				measuredWidth = pageContentRef.AbsoluteSize.X * 0.95
-			end
-
-			local titleH = 20
-			local descSize = TextService:GetTextSize(desc, 14, Enum.Font.Gotham, Vector2.new(measuredWidth - 96, 1000))
-			local descH = math.max(18, math.ceil(descSize.Y))
-			local buttonHeight = math.max(42, 10 + titleH + 6 + descH + 6)
-
-			local wrapper = Instance.new("Frame")
-			wrapper.Name = "ButtonWrapper"
-			wrapper.Size = UDim2.new(1,0,0,0)
-			wrapper.BackgroundTransparency = 1
-			wrapper.Parent = pageContentRef
-			wrapper.AutomaticSize = Enum.AutomaticSize.Y
-
-			local glow = Instance.new("Frame", wrapper)
-			glow.Name = "ButtonGlow"
-			glow.AnchorPoint = Vector2.new(0.5,0)
-			glow.Position = UDim2.new(0.5, 0, 0, 6)
-			glow.Size = UDim2.new(0.96, 0, 0, buttonHeight + 12)
-			glow.BackgroundTransparency = 0.985
-			if self._Stroke and self._Stroke.Color then
-				glow.BackgroundColor3 = self._Stroke.Color
-			else
-				glow.BackgroundColor3 = Color3.fromRGB(0,160,255)
-			end
-			Instance.new("UICorner", glow).CornerRadius = UDim.new(0,8)
-			StartNeonLoop(glow)
-
-			local btnFrame = Instance.new("Frame", wrapper)
-			btnFrame.Name = "Button"
-			btnFrame.AnchorPoint = Vector2.new(0.5,0)
-			btnFrame.Position = UDim2.new(0.5, 0, 0, 6)
-			btnFrame.Size = UDim2.new(0.95, 0, 0, buttonHeight)
-			btnFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
-			Instance.new("UICorner", btnFrame).CornerRadius = UDim.new(0,8)
-
-			local btnStroke = Instance.new("UIStroke", btnFrame)
-			btnStroke.Thickness = 2
-			btnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-			if self._Stroke and self._Stroke.Color then
-				btnStroke.Color = self._Stroke.Color
-			else
-				btnStroke.Color = Color3.fromRGB(0,160,255)
-			end
-			StartNeonLoop(btnStroke)
-
-			local left = Instance.new("Frame", btnFrame)
-			left.Name = "Left"
-			left.Size = UDim2.new(1, -56, 1, 0)
-			left.Position = UDim2.fromOffset(8, 0)
-			left.BackgroundTransparency = 1
-
-			local titleLabel = Instance.new("TextLabel", left)
-			titleLabel.Name = "ButtonTitle"
-			titleLabel.Size = UDim2.new(1, 0, 0, 20)
-			titleLabel.Position = UDim2.fromOffset(0, 6)
-			titleLabel.BackgroundTransparency = 1
-			titleLabel.Text = title
-			titleLabel.TextColor3 = Color3.fromRGB(0,160,255)
-			titleLabel.Font = Enum.Font.GothamBold
-			titleLabel.TextSize = 16
-			titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-			local underline = Instance.new("Frame", left)
-			underline.Name = "ButtonUnderline"
-			underline.Size = UDim2.new(1, -12, 0, 2)
-			underline.Position = UDim2.fromOffset(0, 28)
-			underline.BackgroundColor3 = (self._Stroke and self._Stroke.Color) or Color3.fromRGB(0,160,255)
-			Instance.new("UICorner", underline).CornerRadius = UDim.new(0,2)
-			StartNeonLoop(underline)
-
-			local descLabel = Instance.new("TextLabel", left)
-			descLabel.Name = "ButtonDesc"
-			descLabel.Size = UDim2.new(1, 0, 0, descH)
-			descLabel.Position = UDim2.fromOffset(0, 34)
-			descLabel.BackgroundTransparency = 1
-			descLabel.Text = desc
-			descLabel.TextColor3 = Color3.fromRGB(230,230,230)
-			descLabel.Font = Enum.Font.Gotham
-			descLabel.TextSize = 14
-			descLabel.TextWrapped = true
-			descLabel.TextXAlignment = Enum.TextXAlignment.Left
-			descLabel.TextYAlignment = Enum.TextYAlignment.Top
-
-			local right = Instance.new("TextButton", btnFrame)
-			right.Name = "RightButton"
-			right.Size = UDim2.new(0, 48, 1, -12)
-			right.Position = UDim2.new(1, -56, 0, 6)
-			right.AnchorPoint = Vector2.new(0, 0)
-			right.BackgroundColor3 = Color3.fromRGB(10,20,30)
-			right.BorderSizePixel = 0
-			right.Text = ">"
-			right.Font = Enum.Font.GothamBold
-			right.TextSize = 22
-			right.TextColor3 = Color3.fromRGB(0,160,255)
-			Instance.new("UICorner", right).CornerRadius = UDim.new(0,6)
-
-			right.MouseButton1Click:Connect(function()
-				if callback then pcall(callback) end
-				local t1 = TweenService:Create(btnFrame, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0.95,0,0,math.max(40, buttonHeight - 2))})
-				local t2 = TweenService:Create(btnFrame, TweenInfo.new(0.06, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0.95,0,0,buttonHeight)})
-				t1:Play(); t1.Completed:Wait(); t2:Play()
-			end)
-
-			local publicBtn = {
-				Wrapper = wrapper,
-				Frame = btnFrame,
-				TitleLabel = titleLabel,
-				DescLabel = descLabel,
-				SetText = function(self, newTitle, newDesc)
-					if newTitle then titleLabel.Text = tostring(newTitle) end
-					if newDesc then descLabel.Text = tostring(newDesc) end
-				end,
-				Destroy = function(self) wrapper:Destroy() end,
-			}
-			return publicBtn
-		end
-
 		return public
 	end
 
-	-- convenience: list tabs
+	-- GetTabs convenience
 	function Win:GetTabs()
 		local out = {}
 		for i,t in ipairs(self._Tabs) do
 			table.insert(out, { Index = i, Button = t.Button, Page = t.Page })
 		end
 		return out
-	end
-
-	-- Make Tab:AddParagraph alias to avoid "missing method 'AddParagraph'" errors
-	-- (usable as MainTab:AddParagraph(title, body) — creates a centered paragraph on the page)
-	function Win:AddParagraph(title, body)
-		-- simply call the tab-level Paragraph method
-		if type(self.Paragraph) == "function" then
-			return self:Paragraph(title, body)
-		end
-		return nil
 	end
 
 	if typeof(Callback) == "function" then pcall(Callback) end
