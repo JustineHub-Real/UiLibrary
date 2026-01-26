@@ -1,4 +1,5 @@
--- Kaze UI Library (Fixed Minimize/Restore + Centered Separator + Direct Paragraph)
+-- Kaze UI Library (Fixed Tab Scroll + Glowing Button with Title/Desc)
+-- Based on your original, now with scroll fix and new Button API
 local KazeUI = {}
 KazeUI.__index = KazeUI
 
@@ -46,8 +47,8 @@ local function MakeDraggable(dragPart, targetPart)
 	local dragInput, dragStart, startPos
 
 	local function update(input)
-		if not dragStart or not startPos then return end
-		local delta = input.Position - dragStart		targetPart.Position = UDim2.new(
+		if not dragStart or not startPos then return end		local delta = input.Position - dragStart
+		targetPart.Position = UDim2.new(
 			startPos.X.Scale, startPos.X.Offset + delta.X,
 			startPos.Y.Scale, startPos.Y.Offset + delta.Y
 		)
@@ -95,8 +96,8 @@ local function StartNeonLoop(target)
 
 			local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 			local ok, tween = pcall(function()
-				return TweenService:Create(target, tweenInfo, { [propName] = Color3.fromRGB(0, 255, 255) })
-			end)			if ok and tween then tween:Play() end
+				return TweenService:Create(target, tweenInfo, { [propName] = Color3.fromRGB(0, 255, 255) })			end)
+			if ok and tween then tween:Play() end
 			break
 		end
 	end)
@@ -144,8 +145,8 @@ function KazeUI:CreateWindow(config)
 	-- Avatar + texts
 	local Avatar = Instance.new("ImageLabel")
 	Avatar.Name = "Avatar"
-	Avatar.Size = UDim2.fromOffset(36,36)
-	Avatar.Position = UDim2.fromOffset(12,10)	Avatar.BackgroundColor3 = Color3.fromRGB(30,30,35)
+	Avatar.Size = UDim2.fromOffset(36,36)	Avatar.Position = UDim2.fromOffset(12,10)
+	Avatar.BackgroundColor3 = Color3.fromRGB(30,30,35)
 	Avatar.Image = MainIcon
 	Avatar.Parent = TopBar
 	Instance.new("UICorner", Avatar).CornerRadius = UDim.new(1,0)
@@ -193,12 +194,11 @@ function KazeUI:CreateWindow(config)
 	topDivStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	StartNeonLoop(topDivStroke)
 
-	-- Traffic lights
-	local defaultWindowSize = UDim2.fromOffset(650,420)	local normalSize = defaultWindowSize
-	local normalPosition = UDim2.fromScale(0.5,0.5)
-	local normalAnchor = Vector2.new(0.5,0.5)
-	local isMaximized = false
-	local isMinimized = false
+	-- Traffic lights	local defaultWindowSize = UDim2.fromOffset(650,420)
+	local lastNormalSize = defaultWindowSize
+	local lastNormalPosition = UDim2.fromScale(0.5,0.5)
+	local lastNormalAnchor = Vector2.new(0.5,0.5)
+	local toggledMaximized = false
 
 	local function createCircleButton(name, offsetX, color)
 		local btn = Instance.new("TextButton")
@@ -256,53 +256,43 @@ function KazeUI:CreateWindow(config)
 	MakeDraggable(TopBar, Window)
 	MakeDraggable(MiniButton, MiniButton)
 
-	-- ✅ FIXED: Minimize/Restore Logic
 	local function minimizeWindow()
-		isMinimized = true
 		Window.Visible = false
 		MiniButton.Visible = true
 		MiniButton.Size = UDim2.fromOffset(0,0)
 		TweenService:Create(MiniButton, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = MiniButtonSize }):Play()
 	end
 
-	local function restoreWindow()
-		if not isMinimized then return end
-		isMinimized = false
+	BtnYellow.MouseButton1Click:Connect(minimizeWindow)
+
+	BtnGreen.MouseButton1Click:Connect(function()
+		if not toggledMaximized then
+			lastNormalSize = Window.Size
+			lastNormalPosition = Window.Position
+			lastNormalAnchor = Window.AnchorPoint
+			toggledMaximized = true
+			Window.AnchorPoint = Vector2.new(0.5,0.5)
+			Window.Position = UDim2.fromScale(0.5,0.5)
+			TweenService:Create(Window, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.9,0.85) }):Play()
+		else
+			toggledMaximized = false
+			TweenService:Create(Window, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = lastNormalSize, Position = lastNormalPosition }):Play()
+			delay(0.25, function() Window.AnchorPoint = lastNormalAnchor end)
+		end
+	end)
+
+	MiniButton.MouseButton1Click:Connect(function()
 		MiniButton.Visible = false
 		Window.Visible = true
-
-		if isMaximized then
+		Window.Size = UDim2.fromOffset(0,0)
+		if toggledMaximized then
 			Window.AnchorPoint = Vector2.new(0.5,0.5)
 			Window.Position = UDim2.fromScale(0.5,0.5)
 			TweenService:Create(Window, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.9,0.85) }):Play()
 		else
-			Window.AnchorPoint = normalAnchor
-			TweenService:Create(Window, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = normalSize, Position = normalPosition }):Play()
-		end
-	end
-
-	BtnYellow.MouseButton1Click:Connect(minimizeWindow)
-	MiniButton.MouseButton1Click:Connect(restoreWindow)
-
-	BtnGreen.MouseButton1Click:Connect(function()
-		if isMaximized then
-			-- Restore to normal
-			isMaximized = false
-			TweenService:Create(Window, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = normalSize, Position = normalPosition }):Play()
-			delay(0.25, function()
-				if not isMinimized then
-					Window.AnchorPoint = normalAnchor
-				end			end)
-		else
-			-- Save current normal state before maximizing
-			normalSize = Window.Size
-			normalPosition = Window.Position
-			normalAnchor = Window.AnchorPoint
-			isMaximized = true
-			Window.AnchorPoint = Vector2.new(0.5,0.5)
-			Window.Position = UDim2.fromScale(0.5,0.5)
-			TweenService:Create(Window, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Size = UDim2.fromScale(0.9,0.85) }):Play()
-		end
+			Window.AnchorPoint = lastNormalAnchor
+			Window.Position = lastNormalPosition
+			TweenService:Create(Window, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = lastNormalSize, Position = lastNormalPosition }):Play()		end
 	end)
 
 	local function ShowCloseConfirm()
@@ -341,7 +331,8 @@ function KazeUI:CreateWindow(config)
 		confirmStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		StartNeonLoop(confirmStroke)
 
-		local ConfirmText = Instance.new("TextLabel")		ConfirmText.Size = UDim2.new(1,-32,0,48)
+		local ConfirmText = Instance.new("TextLabel")
+		ConfirmText.Size = UDim2.new(1,-32,0,48)
 		ConfirmText.Position = UDim2.fromOffset(16,20)
 		ConfirmText.BackgroundTransparency = 1
 		ConfirmText.Text = "Are you sure you want to close the UI?"
@@ -351,7 +342,6 @@ function KazeUI:CreateWindow(config)
 		ConfirmText.TextWrapped = true
 		ConfirmText.ZIndex = 53
 		ConfirmText.Parent = ConfirmWindow
-
 		local ButtonsFrame = Instance.new("Frame")
 		ButtonsFrame.Size = UDim2.new(1,0,0,40)
 		ButtonsFrame.Position = UDim2.new(0,0,1,-20)
@@ -390,7 +380,8 @@ function KazeUI:CreateWindow(config)
 		ConfirmBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 		CancelBtn.MouseButton1Click:Connect(function()
 			Overlay:Destroy()
-			BtnYellow.Active = true; BtnGreen.Active = true; BtnRed.Active = true		end)
+			BtnYellow.Active = true; BtnGreen.Active = true; BtnRed.Active = true
+		end)
 	end
 
 	BtnRed.MouseButton1Click:Connect(ShowCloseConfirm)
@@ -399,8 +390,7 @@ function KazeUI:CreateWindow(config)
 	local Content = Instance.new("Frame")
 	Content.Position = UDim2.fromOffset(0,56)
 	Content.Size = UDim2.new(1,0,1,-56)
-	Content.BackgroundTransparency = 1
-	Content.Parent = Window
+	Content.BackgroundTransparency = 1	Content.Parent = Window
 
 	-- Sidebar
 	local SideBar = Instance.new("Frame")
@@ -439,16 +429,27 @@ function KazeUI:CreateWindow(config)
 	Instance.new("UICorner", Pages).CornerRadius = UDim.new(0,12)
 
 	-- Tabs list
-	local TabsList = Instance.new("ScrollingFrame")	TabsList.Name = "TabsList"
+	local TabsList = Instance.new("ScrollingFrame")
+	TabsList.Name = "TabsList"
 	TabsList.Parent = SideBar
 	TabsList.Position = UDim2.fromOffset(8,8)
 	TabsList.Size = UDim2.new(1, -16, 1, -16)
 	TabsList.BackgroundTransparency = 1
 	TabsList.BorderSizePixel = 0
 	TabsList.ScrollBarThickness = 6
-	-- ✅ FIX: Only show scrollbar when needed
+	-- ✅ FIX: Only show scrollbar when content overflows
 	TabsList.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
 	TabsList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	-- 🛠️ Prevent scrolling when not needed
+	TabsList:GetPropertyChangedSignal("CanvasSize"):Connect(function()
+		local canvasHeight = TabsList.CanvasSize.Y
+		local viewportHeight = TabsList.AbsoluteSize.Y
+		if canvasHeight <= viewportHeight then
+			TabsList.ScrollingEnabled = false
+		else
+			TabsList.ScrollingEnabled = true
+		end
+	end)
 
 	local tabsLayout = Instance.new("UIListLayout", TabsList)
 	tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -487,8 +488,8 @@ function KazeUI:CreateWindow(config)
 		btn.Name = "TabButton_" .. name
 		btn.Size = UDim2.new(1, -16, 0, TAB_BUTTON_HEIGHT)
 		btn.BackgroundColor3 = TAB_BG
-		btn.BorderSizePixel = 0
-		btn.Text = ""		btn.AutoButtonColor = false
+		btn.BorderSizePixel = 0		btn.Text = ""
+		btn.AutoButtonColor = false
 		btn.Parent = TabsList
 		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, TAB_CORNER_RADIUS)
 
@@ -536,8 +537,8 @@ function KazeUI:CreateWindow(config)
 		pageContent.BackgroundTransparency = 1
 		pageContent.BorderSizePixel = 0
 
-		local contentLayout = Instance.new("UIListLayout", pageContent)
-		contentLayout.SortOrder = Enum.SortOrder.LayoutOrder		contentLayout.Padding = UDim.new(0,8)
+		local contentLayout = Instance.new("UIListLayout", pageContent)		contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		contentLayout.Padding = UDim.new(0,8)
 		contentLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 		contentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
@@ -585,8 +586,8 @@ function KazeUI:CreateWindow(config)
 			if not leftIndicator.Visible then
 				TweenService:Create(btn, hoverTweenInfo, { BackgroundColor3 = leaveBG }):Play()
 				txt.TextColor3 = TAB_TEXT_INACTIVE
-			end
-		end)		btn.MouseButton1Click:Connect(activate)
+			end		end)
+		btn.MouseButton1Click:Connect(activate)
 		if #self._Tabs == 1 then activate() end
 
 		-- public API
@@ -600,7 +601,7 @@ function KazeUI:CreateWindow(config)
 			SetText = function(newText) txt.Text = tostring(newText or "") end,
 		}
 
-		-- Section API: centered separator fix
+		-- Section API (centered separator)
 		function public:Section(title)
 			title = tostring(title or "")
 			local sectionFrame = Instance.new("Frame")
@@ -634,8 +635,8 @@ function KazeUI:CreateWindow(config)
 			sep.Size = UDim2.new(0.6, 0, 0, 2)
 			sep.BackgroundColor3 = Color3.fromRGB(38,38,42)
 			sep.BorderSizePixel = 0
-			sep.Parent = sectionFrame
-			Instance.new("UICorner", sep).CornerRadius = UDim.new(0,4)
+			sep.Parent = sectionFrame			Instance.new("UICorner", sep).CornerRadius = UDim.new(0,4)
+
 			local sectionContent = Instance.new("Frame")
 			sectionContent.Name = "SectionContent"
 			sectionContent.Size = UDim2.new(1, 0, 0, 0)
@@ -732,8 +733,8 @@ function KazeUI:CreateWindow(config)
 				inner.Position = UDim2.fromOffset(10,10)
 				inner.BackgroundTransparency = 1
 
-				if ptitle ~= "" then
-					local ptitleLabel = Instance.new("TextLabel", inner)					ptitleLabel.Name = "ParagraphTitle"
+				if ptitle ~= "" then					local ptitleLabel = Instance.new("TextLabel", inner)
+					ptitleLabel.Name = "ParagraphTitle"
 					ptitleLabel.Size = UDim2.new(1,0,0,titleHeight)
 					ptitleLabel.Position = UDim2.fromOffset(0,0)
 					ptitleLabel.BackgroundTransparency = 1
@@ -781,8 +782,8 @@ function KazeUI:CreateWindow(config)
 							paraFrame.Size = UDim2.new(0.95,0,0,newTotal)
 							glow.Size = UDim2.new(0.96,0,0,newTotal + 10)
 							if paraFrame:FindFirstChild("ParagraphTitle") then
-								paraFrame.ParagraphTitle.Size = UDim2.new(1,0,0,newTitleH)
-							end							bodyLabel.Size = UDim2.new(1,0,0,newBodyH)
+								paraFrame.ParagraphTitle.Size = UDim2.new(1,0,0,newTitleH)							end
+							bodyLabel.Size = UDim2.new(1,0,0,newBodyH)
 							wrapper.Size = UDim2.new(1,0,0,newTotal + 12)
 						end)
 					end,
@@ -792,7 +793,7 @@ function KazeUI:CreateWindow(config)
 			return sectionPublic
 		end
 
-		-- Tab-level Paragraph (centered in page)
+		-- Tab-level Paragraph
 		function public:Paragraph(ptitle, pbody)
 			ptitle = tostring(ptitle or "")
 			pbody = tostring(pbody or "")
@@ -830,8 +831,8 @@ function KazeUI:CreateWindow(config)
 			local glow = Instance.new("Frame", wrapper)
 			glow.Name = "ParagraphGlow"
 			glow.AnchorPoint = Vector2.new(0.5,0)
-			glow.Position = UDim2.new(0.5, 0, 0, 4)
-			glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 10)			glow.BackgroundTransparency = 0.96
+			glow.Position = UDim2.new(0.5, 0, 0, 4)			glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 10)
+			glow.BackgroundTransparency = 0.96
 			if self._Stroke and self._Stroke.Color then
 				glow.BackgroundColor3 = self._Stroke.Color
 			else
@@ -879,8 +880,8 @@ function KazeUI:CreateWindow(config)
 			bodyLabel.Font = Enum.Font.Gotham
 			bodyLabel.TextSize = 14
 			bodyLabel.TextWrapped = true
-			bodyLabel.TextXAlignment = Enum.TextXAlignment.Left
-			bodyLabel.TextYAlignment = Enum.TextYAlignment.Top
+			bodyLabel.TextXAlignment = Enum.TextXAlignment.Left			bodyLabel.TextYAlignment = Enum.TextYAlignment.Top
+
 			local publicPara = {
 				Wrapper = wrapper,
 				Frame = paraFrame,
@@ -914,6 +915,133 @@ function KazeUI:CreateWindow(config)
 			return publicPara
 		end
 
+		-- ✨ NEW: Glowing Button with Title + Description
+		function public:Button(title, desc, callback)
+			title = tostring(title or "Button")
+			desc = tostring(desc or "")
+			local pageContentRef = self._PageContent
+
+			local measuredWidth = 520
+			if pageContentRef and pageContentRef.AbsoluteSize and pageContentRef.AbsoluteSize.X > 0 then
+				measuredWidth = pageContentRef.AbsoluteSize.X * 0.95
+			end
+
+			local titleHeight = 0
+			if title ~= "" then
+				local ts = TextService:GetTextSize(title, 16, Enum.Font.GothamBold, Vector2.new(measuredWidth - 40, 1000))
+				titleHeight = math.max(20, math.ceil(ts.Y))			end
+
+			local descHeight = 0
+			if desc ~= "" then
+				local ds = TextService:GetTextSize(desc, 13, Enum.Font.Gotham, Vector2.new(measuredWidth - 40, 1000))
+				descHeight = math.ceil(ds.Y)
+			end
+
+			local totalHeight = 12 + titleHeight + (desc ~= "" and (4 + descHeight) or 0) + 12
+
+			local wrapper = Instance.new("Frame")
+			wrapper.Name = "ButtonWrapper"
+			wrapper.Size = UDim2.new(1,0,0,0)
+			wrapper.BackgroundTransparency = 1
+			wrapper.Parent = pageContentRef
+			wrapper.AutomaticSize = Enum.AutomaticSize.Y
+
+			local btnFrame = Instance.new("TextButton")
+			btnFrame.Name = "GlowingButton"
+			btnFrame.AnchorPoint = Vector2.new(0.5,0)
+			btnFrame.Position = UDim2.new(0.5, 0, 0, 6)
+			btnFrame.Size = UDim2.new(0.95, 0, 0, totalHeight)
+			btnFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
+			btnFrame.BorderSizePixel = 0
+			btnFrame.AutoButtonColor = false
+			btnFrame.Text = ""
+			btnFrame.Parent = wrapper
+
+			Instance.new("UICorner", btnFrame).CornerRadius = UDim.new(0,8)
+
+			-- Glow
+			local glow = Instance.new("Frame", wrapper)
+			glow.Name = "ButtonGlow"
+			glow.AnchorPoint = Vector2.new(0.5,0)
+			glow.Position = UDim2.new(0.5, 0, 0, 4)
+			glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 10)
+			glow.BackgroundTransparency = 0.96
+			if self._Stroke and self._Stroke.Color then
+				glow.BackgroundColor3 = self._Stroke.Color
+			else
+				glow.BackgroundColor3 = Color3.fromRGB(0,160,255)
+			end
+			Instance.new("UICorner", glow).CornerRadius = UDim.new(0,10)
+			StartNeonLoop(glow)
+
+			-- Stroke
+			local btnStroke = Instance.new("UIStroke", btnFrame)
+			btnStroke.Thickness = 2
+			btnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			if self._Stroke and self._Stroke.Color then				btnStroke.Color = self._Stroke.Color
+			else
+				btnStroke.Color = Color3.fromRGB(0,160,255)
+			end
+			StartNeonLoop(btnStroke)
+
+			-- Inner padding
+			local inner = Instance.new("Frame", btnFrame)
+			inner.Size = UDim2.new(1, -20, 1, -20)
+			inner.Position = UDim2.fromOffset(10,10)
+			inner.BackgroundTransparency = 1
+
+			-- Title
+			local titleLabel = Instance.new("TextLabel", inner)
+			titleLabel.Name = "ButtonTitle"
+			titleLabel.Size = UDim2.new(1,0,0,titleHeight)
+			titleLabel.Position = UDim2.fromOffset(0,0)
+			titleLabel.BackgroundTransparency = 1
+			titleLabel.Text = title
+			titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
+			titleLabel.Font = Enum.Font.GothamBold
+			titleLabel.TextSize = 16
+			titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+			titleLabel.TextWrapped = true
+
+			-- Description
+			if desc ~= "" then
+				local descLabel = Instance.new("TextLabel", inner)
+				descLabel.Name = "ButtonDesc"
+				descLabel.Size = UDim2.new(1,0,0,descHeight)
+				descLabel.Position = UDim2.fromOffset(0, titleHeight + 4)
+				descLabel.BackgroundTransparency = 1
+				descLabel.Text = desc
+				descLabel.TextColor3 = Color3.fromRGB(200,200,200)
+				descLabel.Font = Enum.Font.Gotham
+				descLabel.TextSize = 13
+				descLabel.TextWrapped = true
+				descLabel.TextXAlignment = Enum.TextXAlignment.Left
+				descLabel.TextYAlignment = Enum.TextYAlignment.Top
+			end
+
+			-- Hover & click effects
+			local baseColor = Color3.fromRGB(24,24,28)
+			local hoverColor = Color3.fromRGB(30,30,34)
+			local clickColor = Color3.fromRGB(20,20,24)
+
+			btnFrame.MouseEnter:Connect(function()
+				TweenService:Create(btnFrame, TweenInfo.new(0.1), { BackgroundColor3 = hoverColor }):Play()
+			end)
+			btnFrame.MouseLeave:Connect(function()				TweenService:Create(btnFrame, TweenInfo.new(0.1), { BackgroundColor3 = baseColor }):Play()
+			end)
+			btnFrame.MouseButton1Down:Connect(function()
+				TweenService:Create(btnFrame, TweenInfo.new(0.05), { BackgroundColor3 = clickColor }):Play()
+			end)
+			btnFrame.MouseButton1Up:Connect(function()
+				TweenService:Create(btnFrame, TweenInfo.new(0.1), { BackgroundColor3 = hoverColor }):Play()
+				if typeof(callback) == "function" then
+					spawn(callback)
+				end
+			end)
+
+			return btnFrame
+		end
+
 		return public
 	end
 
@@ -929,6 +1057,7 @@ function KazeUI:CreateWindow(config)
 	if typeof(Callback) == "function" then
 		pcall(Callback)
 	end
+
 	return Win
 end
 
