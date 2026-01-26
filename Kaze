@@ -1,6 +1,6 @@
 --// Kaze UI Base
 --// Window System (PC + Mobile)
---// Updated: Tab improvements — rectangular tabs, stronger text contrast, hover animations, small optimizations
+--// Updated: Tab improvements — rectangular tabs, stronger text contrast, hover animations, optimized tab width to use more of the sidebar without overflowing
 
 local KazeUI = {}
 KazeUI.__index = KazeUI
@@ -456,23 +456,23 @@ function KazeUI:CreateWindow(config)
 	Instance.new("UICorner", Pages).CornerRadius = UDim.new(0, 12)
 
 	-- Tabs list (scrolling) inside the sidebar
+	-- Adjusted padding/size so each tab can be wider but still stay inside the sidebar bounds.
 	local TabsList = Instance.new("ScrollingFrame")
 	TabsList.Name = "TabsList"
 	TabsList.Parent = SideBar
-	TabsList.Position = UDim2.fromOffset(12, 12)
-	TabsList.Size = UDim2.new(1, -24, 1, -24)
+	TabsList.Position = UDim2.fromOffset(8, 8)        -- reduced padding to gain width
+	TabsList.Size = UDim2.new(1, -16, 1, -16)        -- use more of the sidebar width while not overflowing
 	TabsList.BackgroundTransparency = 1
 	TabsList.BorderSizePixel = 0
 	TabsList.CanvasSize = UDim2.new(0, 0, 0, 0)
 	TabsList.ScrollBarThickness = 6
 	TabsList.VerticalScrollBarInset = Enum.ScrollBarInset.Always
-	-- keep AutomaticCanvasSize for dynamic sizing and fewer manual updates
 	TabsList.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 	local tabsLayout = Instance.new("UIListLayout")
 	tabsLayout.Parent = TabsList
 	tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	tabsLayout.Padding = UDim.new(0, 10)
+	tabsLayout.Padding = UDim.new(0, 8)
 
 	-- container to hold tab data
 	local createdTabs = {}
@@ -504,9 +504,10 @@ function KazeUI:CreateWindow(config)
 		local formattedIcon = FormatImage(iconId or "")
 
 		-- Button
+		-- Increased button width by using the TabsList's available width (1, -16) and reducing internal left padding for icon/text.
 		local btn = Instance.new("TextButton")
 		btn.Name = "TabButton_" .. name
-		btn.Size = UDim2.new(1, -24, 0, TAB_BUTTON_HEIGHT)
+		btn.Size = UDim2.new(1, -16, 0, TAB_BUTTON_HEIGHT) -- slightly wider inside the sidebar
 		btn.BackgroundColor3 = TAB_BG
 		btn.BorderSizePixel = 0
 		btn.Text = ""
@@ -525,21 +526,21 @@ function KazeUI:CreateWindow(config)
 		leftIndicator.Parent = btn
 		Instance.new("UICorner", leftIndicator).CornerRadius = UDim.new(0, 6)
 
-		-- Icon (left, vertically centered)
+		-- Icon (left, vertically centered) — made slightly smaller and moved a bit left so label has more room
 		local iconLabel = Instance.new("ImageLabel")
 		iconLabel.Name = "Icon"
-		iconLabel.Size = UDim2.fromOffset(32, 32)
-		iconLabel.Position = UDim2.new(0, 12, 0.5, -16)
+		iconLabel.Size = UDim2.fromOffset(28, 28) -- smaller icon to free space
+		iconLabel.Position = UDim2.new(0, 10, 0.5, -14)
 		iconLabel.BackgroundTransparency = 1
 		iconLabel.Image = formattedIcon
 		iconLabel.Parent = btn
 		Instance.new("UICorner", iconLabel).CornerRadius = UDim.new(1, 0)
 
-		-- Text (clearer, bolder)
+		-- Text (clearer, bolder for active)
 		local txt = Instance.new("TextLabel")
 		txt.Name = "Label"
-		txt.Size = UDim2.new(1, -64, 1, 0)
-		txt.Position = UDim2.fromOffset(56, 0)
+		txt.Size = UDim2.new(1, -56, 1, 0)            -- reduced right padding to allow more text space
+		txt.Position = UDim2.fromOffset(48, 0)        -- moved left closer to icon so it gains width
 		txt.BackgroundTransparency = 1
 		txt.Text = name
 		txt.TextColor3 = TAB_TEXT_INACTIVE
