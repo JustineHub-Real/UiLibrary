@@ -1,7 +1,10 @@
--- Kaze UI Library (separator centered under Section)
--- Full file (drop-in replacement). Change: Section separator is now centered.
--- The Section uses a UIListLayout with HorizontalAlignment = Center and the separator
--- uses a fixed fractional width so it stays centered and visually balanced.
+-- Kaze UI Library (fixed spacing / centered paragraphs inside sections)
+-- Changes in this version:
+--  - Section frames now use UIListLayout + AutomaticSize so they shrink to fit children (removes large empty gaps)
+--  - Section:AddParagraph centers the paragraph and uses AutomaticSize wrappers so spacing is tight
+--  - Reduced various paddings to make layout more compact and pretty
+--  - Safe neon loop and exposed window stroke for paragraph coloring
+-- Drop this file in place of your existing KazeUI.lua
 
 local KazeUI = {}
 KazeUI.__index = KazeUI
@@ -422,7 +425,7 @@ function KazeUI:CreateWindow(config)
 	Pages.Parent = Content
 	Instance.new("UICorner", Pages).CornerRadius = UDim.new(0,12)
 
-	-- Tabs list
+	-- Tabs list (sidebar)
 	local TabsList = Instance.new("ScrollingFrame")
 	TabsList.Name = "TabsList"
 	TabsList.Parent = SideBar
@@ -512,7 +515,7 @@ function KazeUI:CreateWindow(config)
 		page.Parent = self._Pages
 		page.Visible = false
 
-		-- PageContent
+		-- PageContent holds sections/paragraphs stacked vertically
 		local pageContent = Instance.new("Frame", page)
 		pageContent.Name = "PageContent"
 		pageContent.Size = UDim2.new(1, 0, 1, 0)
@@ -521,7 +524,7 @@ function KazeUI:CreateWindow(config)
 		pageContent.BorderSizePixel = 0
 		local contentLayout = Instance.new("UIListLayout", pageContent)
 		contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		contentLayout.Padding = UDim.new(0,8)
+		contentLayout.Padding = UDim.new(0,8) -- reduced padding
 		contentLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 
 		-- store
@@ -579,30 +582,29 @@ function KazeUI:CreateWindow(config)
 			Button = btn,
 			Page = page,
 			_PageContent = pageContent,
-			_Stroke = self._Stroke,
+			_Stroke = self._Stroke, -- expose accent stroke
 			Activate = activate,
 			SetIcon = function(newIcon) iconLabel.Image = FormatImage(newIcon) end,
 			SetText = function(newText) txt.Text = tostring(newText or "") end,
 		}
 
-		-- Section API: centered separator fix
+		-- Section API: automatic sizing and centered content
 		function public:Section(title)
 			title = tostring(title or "")
 
 			local sectionFrame = Instance.new("Frame")
 			sectionFrame.Name = "Section_" .. title
-			sectionFrame.Size = UDim2.new(1, -24, 0, 0)
+			sectionFrame.Size = UDim2.new(1, -24, 0, 0) -- start zero height, AutomaticSize will grow
 			sectionFrame.BackgroundTransparency = 1
 			sectionFrame.BorderSizePixel = 0
 			sectionFrame.Parent = self._PageContent
 			sectionFrame.AutomaticSize = Enum.AutomaticSize.Y
 
-			-- UIListLayout that centers children horizontally
+			-- Use a UIListLayout to stack title, separator, and section content tightly
 			local sectionLayout = Instance.new("UIListLayout", sectionFrame)
 			sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
 			sectionLayout.Padding = UDim.new(0, 6)
 			sectionLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-			sectionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center -- CENTER children
 
 			-- Title
 			local titleLabel = Instance.new("TextLabel")
@@ -617,14 +619,14 @@ function KazeUI:CreateWindow(config)
 			titleLabel.TextXAlignment = Enum.TextXAlignment.Center
 			titleLabel.Parent = sectionFrame
 
-			-- Centered separator: give it fractional (not full) width so it centers nicely
+			-- Separator
 			local sep = Instance.new("Frame")
 			sep.Name = "SectionSeparator"
-			sep.Size = UDim2.new(0.6, 0, 0, 2) -- 60% width, centered by UIListLayout.HorizontalAlignment
+			sep.Size = UDim2.new(1, -40, 0, 2)
 			sep.BackgroundColor3 = Color3.fromRGB(38,38,42)
 			sep.BorderSizePixel = 0
-			sep.Parent = sectionFrame
 			Instance.new("UICorner", sep).CornerRadius = UDim.new(0,4)
+			sep.Parent = sectionFrame
 
 			-- sectionContent holds centered children
 			local sectionContent = Instance.new("Frame")
@@ -641,8 +643,9 @@ function KazeUI:CreateWindow(config)
 			secLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 			secLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 
-			-- Section public API
+			-- Section API methods
 			local sectionPublic = {}
+
 			sectionPublic.Frame = sectionFrame
 			sectionPublic.TitleLabel = titleLabel
 
@@ -663,7 +666,7 @@ function KazeUI:CreateWindow(config)
 				ptitle = tostring(ptitle or "")
 				pbody = tostring(pbody or "")
 
-				-- measure width and text sizes
+				-- measure available width (use 95% so paragraph doesn't touch edges)
 				local measuredWidth = 520
 				if sectionContent and sectionContent.AbsoluteSize and sectionContent.AbsoluteSize.X and sectionContent.AbsoluteSize.X > 0 then
 					measuredWidth = sectionContent.AbsoluteSize.X * 0.95
@@ -678,7 +681,7 @@ function KazeUI:CreateWindow(config)
 				local bodyHeight = math.ceil(bodySize.Y)
 				local totalHeight = 10 + titleHeight + 6 + bodyHeight + 10
 
-				-- wrapper auto-sized so layout is tight
+				-- wrapper auto size (so layout sizes correctly)
 				local wrapper = Instance.new("Frame")
 				wrapper.Name = "ParagraphWrapper"
 				wrapper.Size = UDim2.new(1, 0, 0, 0)
@@ -686,7 +689,7 @@ function KazeUI:CreateWindow(config)
 				wrapper.Parent = sectionContent
 				wrapper.AutomaticSize = Enum.AutomaticSize.Y
 
-				-- paragraph frame centered
+				-- paragraph frame centered horizontally inside wrapper
 				local paraFrame = Instance.new("Frame")
 				paraFrame.Name = "Paragraph"
 				paraFrame.AnchorPoint = Vector2.new(0.5, 0)
@@ -698,13 +701,13 @@ function KazeUI:CreateWindow(config)
 				paraFrame.Parent = wrapper
 				paraFrame.ZIndex = 2
 
-				-- faint glow
+				-- faint glow behind paragraph
 				local glow = Instance.new("Frame")
 				glow.Name = "ParagraphGlow"
 				glow.AnchorPoint = Vector2.new(0.5,0)
 				glow.Position = UDim2.new(0.5, 0, 0, 4)
 				glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 10)
-				glow.BackgroundTransparency = 0.96
+				glow.BackgroundTransparency = 0.96 -- very faint to avoid dark blob
 				if Win._Stroke and Win._Stroke.Color then
 					glow.BackgroundColor3 = Win._Stroke.Color
 				else
@@ -714,6 +717,7 @@ function KazeUI:CreateWindow(config)
 				glow.Parent = wrapper
 				StartNeonLoop(glow)
 
+				-- outline stroke
 				local paraStroke = Instance.new("UIStroke", paraFrame)
 				paraStroke.Thickness = 2
 				paraStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -724,11 +728,13 @@ function KazeUI:CreateWindow(config)
 				end
 				StartNeonLoop(paraStroke)
 
+				-- inner padding
 				local inner = Instance.new("Frame", paraFrame)
 				inner.Size = UDim2.new(1, -20, 1, -20)
 				inner.Position = UDim2.fromOffset(10,10)
 				inner.BackgroundTransparency = 1
 
+				-- title label
 				if ptitle ~= "" then
 					local ptitleLabel = Instance.new("TextLabel", inner)
 					ptitleLabel.Name = "ParagraphTitle"
@@ -743,6 +749,7 @@ function KazeUI:CreateWindow(config)
 					ptitleLabel.TextWrapped = true
 				end
 
+				-- body label
 				local bodyLabel = Instance.new("TextLabel", inner)
 				bodyLabel.Name = "ParagraphBody"
 				bodyLabel.Size = UDim2.new(1,0,0,bodyHeight)
@@ -756,6 +763,7 @@ function KazeUI:CreateWindow(config)
 				bodyLabel.TextXAlignment = Enum.TextXAlignment.Left
 				bodyLabel.TextYAlignment = Enum.TextYAlignment.Top
 
+				-- return API for the paragraph
 				local paraAPI = {
 					Wrapper = wrapper,
 					Frame = paraFrame,
@@ -792,7 +800,7 @@ function KazeUI:CreateWindow(config)
 			return sectionPublic
 		end
 
-		-- Tab-level Paragraph (centered in page)
+		-- Backwards-compatible Tab:Paragraph (adds centered paragraph into page)
 		function public:Paragraph(ptitle, pbody)
 			ptitle = tostring(ptitle or "")
 			pbody = tostring(pbody or "")
@@ -919,7 +927,7 @@ function KazeUI:CreateWindow(config)
 		return public
 	end
 
-	-- GetTabs convenience
+	-- list tabs convenience
 	function Win:GetTabs()
 		local out = {}
 		for i,t in ipairs(self._Tabs) do
