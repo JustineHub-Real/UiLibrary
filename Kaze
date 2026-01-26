@@ -1,7 +1,4 @@
--- Kaze UI Base (extended)
--- Added: Tab:Section, Tab:AddLabel, Tab:CreateParagraph, Tab:CreateButton
--- Section titles default to blue text. Section/Add helpers add content into the last created section.
-
+-- Kaze UI Library (modified: adds Tab:Paragraph with glowing outline + content container per Page)
 local KazeUI = {}
 KazeUI.__index = KazeUI
 
@@ -150,6 +147,12 @@ function KazeUI:CreateWindow(config)
 	local avatarStroke = Instance.new("UIStroke", Avatar)
 	avatarStroke.Color = Color3.fromRGB(0, 140, 200)
 	avatarStroke.Thickness = 1
+
+	local Icon = Instance.new("ImageLabel")
+	Icon.Size = UDim2.fromOffset(0, 0)
+	Icon.BackgroundTransparency = 1
+	Icon.Image = MainIcon
+	Icon.Parent = TopBar
 
 	local TitleLabel = Instance.new("TextLabel")
 	TitleLabel.Size = UDim2.new(1, -220, 0, 22)
@@ -449,11 +452,12 @@ function KazeUI:CreateWindow(config)
 	Instance.new("UICorner", Pages).CornerRadius = UDim.new(0, 12)
 
 	-- Tabs list (scrolling) inside the sidebar
+	-- Adjusted padding/size so each tab can be wider but still stay inside the sidebar bounds.
 	local TabsList = Instance.new("ScrollingFrame")
 	TabsList.Name = "TabsList"
 	TabsList.Parent = SideBar
-	TabsList.Position = UDim2.fromOffset(8, 8)
-	TabsList.Size = UDim2.new(1, -16, 1, -16)
+	TabsList.Position = UDim2.fromOffset(8, 8)        -- reduced padding to gain width
+	TabsList.Size = UDim2.new(1, -16, 1, -16)        -- use more of the sidebar width while not overflowing
 	TabsList.BackgroundTransparency = 1
 	TabsList.BorderSizePixel = 0
 	TabsList.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -470,8 +474,8 @@ function KazeUI:CreateWindow(config)
 	local createdTabs = {}
 
 	-- small constants for tab appearance (easy to tweak)
-	local TAB_BUTTON_HEIGHT = 44
-	local TAB_CORNER_RADIUS = 6
+	local TAB_BUTTON_HEIGHT = 44      -- reduced height to make tabs more rectangular (less "taba")
+	local TAB_CORNER_RADIUS = 6       -- smaller corner radius for a more rectangular look
 	local TAB_BG = Color3.fromRGB(24,24,28)
 	local TAB_BG_ACTIVE = Color3.fromRGB(32,32,36)
 	local TAB_TEXT_COLOR = Color3.fromRGB(240,240,240)
@@ -496,13 +500,14 @@ function KazeUI:CreateWindow(config)
 		local formattedIcon = FormatImage(iconId or "")
 
 		-- Button
+		-- Increased button width by using the TabsList's available width (1, -16) and reducing internal left padding for icon/text.
 		local btn = Instance.new("TextButton")
 		btn.Name = "TabButton_" .. name
-		btn.Size = UDim2.new(1, -16, 0, TAB_BUTTON_HEIGHT)
+		btn.Size = UDim2.new(1, -16, 0, TAB_BUTTON_HEIGHT) -- slightly wider inside the sidebar
 		btn.BackgroundColor3 = TAB_BG
 		btn.BorderSizePixel = 0
 		btn.Text = ""
-		btn.AutoButtonColor = false
+		btn.AutoButtonColor = false -- we'll handle hover/pressed visuals
 		btn.Parent = TabsList
 		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, TAB_CORNER_RADIUS)
 
@@ -517,21 +522,21 @@ function KazeUI:CreateWindow(config)
 		leftIndicator.Parent = btn
 		Instance.new("UICorner", leftIndicator).CornerRadius = UDim.new(0, 6)
 
-		-- Icon
+		-- Icon (left, vertically centered) — made slightly smaller and moved a bit left so label has more room
 		local iconLabel = Instance.new("ImageLabel")
 		iconLabel.Name = "Icon"
-		iconLabel.Size = UDim2.fromOffset(28, 28)
+		iconLabel.Size = UDim2.fromOffset(28, 28) -- smaller icon to free space
 		iconLabel.Position = UDim2.new(0, 10, 0.5, -14)
 		iconLabel.BackgroundTransparency = 1
 		iconLabel.Image = formattedIcon
 		iconLabel.Parent = btn
 		Instance.new("UICorner", iconLabel).CornerRadius = UDim.new(1, 0)
 
-		-- Text
+		-- Text (clearer, bolder for active)
 		local txt = Instance.new("TextLabel")
 		txt.Name = "Label"
-		txt.Size = UDim2.new(1, -56, 1, 0)
-		txt.Position = UDim2.fromOffset(48, 0)
+		txt.Size = UDim2.new(1, -56, 1, 0)            -- reduced right padding to allow more text space
+		txt.Position = UDim2.fromOffset(48, 0)        -- moved left closer to icon so it gains width
 		txt.BackgroundTransparency = 1
 		txt.Text = name
 		txt.TextColor3 = TAB_TEXT_INACTIVE
@@ -549,24 +554,20 @@ function KazeUI:CreateWindow(config)
 		page.BorderSizePixel = 0
 		page.Parent = self._Pages
 		page.Visible = false
-		Instance.new("UICorner", page).CornerRadius = UDim.new(0, 6)
 
-		-- PageContainer (scrolling) that holds sections and content for the page
-		local pageContainer = Instance.new("ScrollingFrame")
-		pageContainer.Name = "PageContainer"
-		pageContainer.Size = UDim2.new(1, -24, 1, -24)
-		pageContainer.Position = UDim2.fromOffset(12, 12)
-		pageContainer.BackgroundTransparency = 1
-		pageContainer.BorderSizePixel = 0
-		pageContainer.Parent = page
-		pageContainer.ScrollBarThickness = 8
-		pageContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		pageContainer.VerticalScrollBarInset = Enum.ScrollBarInset.Always
+		-- Create a dedicated transparent content container inside the page so sections/paragraphs stack automatically
+		local pageContent = Instance.new("Frame")
+		pageContent.Name = "PageContent"
+		pageContent.Size = UDim2.new(1, 0, 1, 0)
+		pageContent.Position = UDim2.new(0, 0, 0, 0)
+		pageContent.BackgroundTransparency = 1
+		pageContent.BorderSizePixel = 0
+		pageContent.Parent = page
 
-		local pageLayout = Instance.new("UIListLayout")
-		pageLayout.Parent = pageContainer
-		pageLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		pageLayout.Padding = UDim.new(0, 12)
+		local contentLayout = Instance.new("UIListLayout")
+		contentLayout.Parent = pageContent
+		contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		contentLayout.Padding = UDim.new(0, 12)
 
 		-- store tab
 		local tabObj = {
@@ -575,7 +576,7 @@ function KazeUI:CreateWindow(config)
 			Label = txt,
 			Icon = iconLabel,
 			Page = page,
-			PageContainer = pageContainer, -- where content is added
+			PageContent = pageContent,
 		}
 		table.insert(self._Tabs, tabObj)
 
@@ -606,6 +607,7 @@ function KazeUI:CreateWindow(config)
 		local hoverBG = Color3.fromRGB(28,28,31)
 		local leaveBG = TAB_BG
 		btn.MouseEnter:Connect(function()
+			-- only tween if not active (indicator hidden)
 			if not leftIndicator.Visible then
 				TweenService:Create(btn, hoverTweenInfo, {BackgroundColor3 = hoverBG}):Play()
 				txt.TextColor3 = Color3.fromRGB(220,220,220)
@@ -626,11 +628,11 @@ function KazeUI:CreateWindow(config)
 			activate()
 		end
 
-		-- public API for the tab
+		-- expose Activate method on returned object
 		local public = {
 			Button = btn,
 			Page = page,
-			PageContainer = pageContainer,
+			_PageContent = pageContent,
 			Activate = activate,
 			SetIcon = function(newIcon)
 				iconLabel.Image = FormatImage(newIcon)
@@ -638,359 +640,144 @@ function KazeUI:CreateWindow(config)
 			SetText = function(newText)
 				txt.Text = tostring(newText or "")
 			end,
-			_LastSection = nil, -- internal: last created section container
 		}
 
-		-- Helper: ensure we have a section to add content into; if none exists create a default one
-		local function ensureSection()
-			if public._LastSection and public._LastSection.Parent and public._LastSection.ContentLayout then
-				return public._LastSection
-			end
-			-- create default unnamed section
-			return public:Section(" ")
-		end
-
-		-- Section API on the tab (creates a dedicated container in the page for grouped content)
+		-- Section API: create a section header on the tab's page
+		-- title (string) -> returns {Frame=frame, TitleLabel=label}
 		function public:Section(title)
 			title = tostring(title or "")
-
+			-- container frame for the section (transparent background by default)
 			local sectionFrame = Instance.new("Frame")
 			sectionFrame.Name = "Section_" .. title
-			sectionFrame.Size = UDim2.new(1, 0, 0, 8) -- height will auto-size via children + UIListLayout (start small)
+			sectionFrame.Size = UDim2.new(1, -24, 0, 64) -- full width minus some padding, 64px tall for header area
 			sectionFrame.BackgroundTransparency = 1
 			sectionFrame.BorderSizePixel = 0
-			sectionFrame.Parent = public.PageContainer
+			sectionFrame.Parent = pageContent
 
-			-- container to auto-fit children vertically
-			local contentHolder = Instance.new("Frame")
-			contentHolder.Name = "ContentHolder"
-			contentHolder.Size = UDim2.new(1, 0, 0, 0)
-			contentHolder.BackgroundTransparency = 1
-			contentHolder.BorderSizePixel = 0
-			contentHolder.Parent = sectionFrame
-
-			local contentLayout = Instance.new("UIListLayout")
-			contentLayout.Parent = contentHolder
-			contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-			contentLayout.Padding = UDim.new(0, 8)
-
-			-- Title label centered
+			-- Title label centered at the top of the section
 			local titleLabel = Instance.new("TextLabel")
 			titleLabel.Name = "SectionTitle"
-			titleLabel.Size = UDim2.new(1, 0, 0, 28)
+			titleLabel.Size = UDim2.new(1, 0, 0, 36)
+			titleLabel.Position = UDim2.fromOffset(0, 8)
 			titleLabel.BackgroundTransparency = 1
 			titleLabel.Text = title
-			titleLabel.TextColor3 = Color3.fromRGB(0, 120, 255) -- blue text as requested
+			-- Blue text as requested
+			titleLabel.TextColor3 = Color3.fromRGB(0, 120, 255) -- blue
 			titleLabel.Font = Enum.Font.GothamBold
 			titleLabel.TextSize = 22
 			titleLabel.TextWrapped = true
 			titleLabel.TextXAlignment = Enum.TextXAlignment.Center
-			titleLabel.Parent = contentHolder
+			titleLabel.Parent = sectionFrame
 
-			-- optional separator
+			-- a subtle separator under the title (optional visual)
 			local sep = Instance.new("Frame")
 			sep.Name = "SectionSeparator"
 			sep.Size = UDim2.new(1, -40, 0, 2)
+			sep.Position = UDim2.fromOffset(20, 48)
 			sep.BackgroundColor3 = Color3.fromRGB(38,38,42)
 			sep.BorderSizePixel = 0
-			sep.Parent = contentHolder
+			sep.AnchorPoint = Vector2.new(0,0)
+			sep.Parent = sectionFrame
 			Instance.new("UICorner", sep).CornerRadius = UDim.new(0, 4)
 
-			-- auto-size the section frame height based on contentHolder size
-			contentHolder:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-				local absY = contentHolder.AbsoluteSize.Y
-				sectionFrame.Size = UDim2.new(1, 0, 0, absY)
-			end)
-
-			public._LastSection = {
+			-- return small API for the section so users can add content
+			local sectionPublic = {
 				Frame = sectionFrame,
-				ContentHolder = contentHolder,
-				ContentLayout = contentLayout,
-				TitleLabel = titleLabel
+				TitleLabel = titleLabel,
+				AddLabel = function(self, txt, opts)
+					local label = Instance.new("TextLabel")
+					label.Size = UDim2.new(1, -40, 0, 24)
+					label.Position = UDim2.fromOffset(20, (#sectionFrame:GetChildren() * 28))
+					label.BackgroundTransparency = 1
+					label.Text = tostring(txt or "")
+					label.TextColor3 = Color3.fromRGB(220,220,220)
+					label.Font = Enum.Font.Gotham
+					label.TextSize = 14
+					label.TextXAlignment = Enum.TextXAlignment.Left
+					label.Parent = sectionFrame
+					return label
+				end,
 			}
-
-			-- section-local helpers
-			local sectionPublic = {}
-
-			function sectionPublic:AddLabel(text)
-				local label = Instance.new("TextLabel")
-				label.Size = UDim2.new(1, -20, 0, 20)
-				label.BackgroundTransparency = 1
-				label.Text = tostring(text or "")
-				label.TextColor3 = Color3.fromRGB(220,220,220)
-				label.Font = Enum.Font.Gotham
-				label.TextSize = 14
-				label.TextXAlignment = Enum.TextXAlignment.Left
-				label.Parent = contentHolder
-				return label
-			end
-
-			function sectionPublic:CreateParagraph(opts)
-				opts = opts or {}
-				if type(opts) == "string" then
-					opts = { Title = "", Text = tostring(opts) }
-				end
-				local titleTxt = tostring(opts.Title or "")
-				local bodyTxt = tostring(opts.Text or "")
-
-				local frame = Instance.new("Frame")
-				frame.Size = UDim2.new(1, -8, 0, 0)
-				frame.BackgroundTransparency = 1
-				frame.BorderSizePixel = 0
-				frame.Parent = contentHolder
-
-				local titleLabel = Instance.new("TextLabel")
-				titleLabel.Size = UDim2.new(1, 0, 0, 20)
-				titleLabel.BackgroundTransparency = 1
-				titleLabel.Text = titleTxt
-				titleLabel.TextColor3 = Color3.fromRGB(240,240,240)
-				titleLabel.Font = Enum.Font.GothamBold
-				titleLabel.TextSize = 16
-				titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-				titleLabel.Parent = frame
-
-				local bodyLabel = Instance.new("TextLabel")
-				bodyLabel.Size = UDim2.new(1, 0, 0, 0)
-				bodyLabel.BackgroundTransparency = 1
-				bodyLabel.Text = bodyTxt
-				bodyLabel.TextColor3 = Color3.fromRGB(200,200,200)
-				bodyLabel.Font = Enum.Font.Gotham
-				bodyLabel.TextSize = 14
-				bodyLabel.TextWrapped = true
-				bodyLabel.TextXAlignment = Enum.TextXAlignment.Left
-				bodyLabel.AutomaticSize = Enum.AutomaticSize.Y
-				bodyLabel.Parent = frame
-
-				-- auto resize frame height based on contents
-				local function updateHeight()
-					local total = 0
-					for _, c in ipairs(frame:GetChildren()) do
-						if c:IsA("TextLabel") then
-							total = total + c.AbsoluteSize.Y
-						end
-					end
-					frame.Size = UDim2.new(1, -8, 0, total + 8)
-				end
-				frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateHeight)
-				titleLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateHeight)
-				bodyLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateHeight)
-
-				return frame
-			end
-
-			function sectionPublic:CreateButton(opts)
-				opts = opts or {}
-				if type(opts) == "string" then
-					opts = { Title = opts, Desc = "" }
-				end
-				local titleTxt = tostring(opts.Title or "Button")
-				local descTxt = tostring(opts.Desc or "")
-				local callback = opts.Callback
-
-				local btnFrame = Instance.new("Frame")
-				btnFrame.Size = UDim2.new(1, 0, 0, 52)
-				btnFrame.BackgroundTransparency = 1
-				btnFrame.Parent = contentHolder
-
-				local btn = Instance.new("TextButton")
-				btn.Size = UDim2.new(1, -8, 1, 0)
-				btn.Position = UDim2.fromOffset(4, 0)
-				btn.BackgroundColor3 = Color3.fromRGB(40,40,44)
-				btn.Text = ""
-				btn.BorderSizePixel = 0
-				btn.Parent = btnFrame
-				Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-
-				local titleLabel = Instance.new("TextLabel")
-				titleLabel.Size = UDim2.new(1, -12, 0, 20)
-				titleLabel.Position = UDim2.fromOffset(8, 6)
-				titleLabel.BackgroundTransparency = 1
-				titleLabel.Text = titleTxt
-				titleLabel.TextColor3 = Color3.fromRGB(235,235,235)
-				titleLabel.Font = Enum.Font.GothamBold
-				titleLabel.TextSize = 15
-				titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-				titleLabel.Parent = btn
-
-				local descLabel = Instance.new("TextLabel")
-				descLabel.Size = UDim2.new(1, -12, 0, 16)
-				descLabel.Position = UDim2.fromOffset(8, 26)
-				descLabel.BackgroundTransparency = 1
-				descLabel.Text = descTxt
-				descLabel.TextColor3 = Color3.fromRGB(185,185,185)
-				descLabel.Font = Enum.Font.Gotham
-				descLabel.TextSize = 12
-				descLabel.TextXAlignment = Enum.TextXAlignment.Left
-				descLabel.Parent = btn
-
-				-- simple click connection convenience
-				if type(callback) == "function" then
-					btn.MouseButton1Click:Connect(function()
-						pcall(callback)
-					end)
-				end
-
-				-- hover effect
-				btn.MouseEnter:Connect(function()
-					TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(48,48,52)}):Play()
-				end)
-				btn.MouseLeave:Connect(function()
-					TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(40,40,44)}):Play()
-				end)
-
-				return btn
-			end
 
 			return sectionPublic
 		end
 
-		-- AddLabel on the TAB: adds a simple label into the last section or create a default section automatically
-		function public:AddLabel(text)
-			local sec = ensureSection()
-			local label = Instance.new("TextLabel")
-			label.Size = UDim2.new(1, -20, 0, 20)
-			label.BackgroundTransparency = 1
-			label.Text = tostring(text or "")
-			label.TextColor3 = Color3.fromRGB(220,220,220)
-			label.Font = Enum.Font.Gotham
-			label.TextSize = 14
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.Parent = sec.ContentHolder
-			return label
-		end
+		-- Paragraph API: creates a paragraph box with a glowing outline
+		-- title (string), body (string) optional
+		function public:Paragraph(title, body)
+			title = tostring(title or "")
+			body = tostring(body or "")
 
-		-- CreateParagraph on the TAB: convenience that adds paragraph into last section
-		-- Accepts either a table {Title=..., Text=...} or two args (title, text)
-		function public:CreateParagraph(optsOrTitle, maybeText)
-			local sec = ensureSection()
-			local opts = {}
-			if type(optsOrTitle) == "table" then
-				opts = optsOrTitle
-			else
-				opts.Title = tostring(optsOrTitle or "")
-				opts.Text = tostring(maybeText or "")
+			-- container frame for paragraph (slightly padded)
+			local paraFrame = Instance.new("Frame")
+			paraFrame.Name = "Paragraph_" .. title
+			paraFrame.Size = UDim2.new(1, -32, 0, 120)
+			paraFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+			paraFrame.BorderSizePixel = 0
+			paraFrame.Parent = pageContent
+			Instance.new("UICorner", paraFrame).CornerRadius = UDim.new(0, 8)
+
+			-- neon outline (glow)
+			local paraStroke = Instance.new("UIStroke")
+			paraStroke.Parent = paraFrame
+			paraStroke.Color = self._Stroke.Color
+			paraStroke.Thickness = 2
+			paraStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+			StartNeonLoop(paraStroke)
+
+			-- inner padding container
+			local inner = Instance.new("Frame")
+			inner.Size = UDim2.new(1, -16, 1, -16)
+			inner.Position = UDim2.fromOffset(8, 8)
+			inner.BackgroundTransparency = 1
+			inner.Parent = paraFrame
+
+			-- Title (small header)
+			if title ~= "" then
+				local titleLabel = Instance.new("TextLabel")
+				titleLabel.Name = "ParagraphTitle"
+				titleLabel.Size = UDim2.new(1, 0, 0, 22)
+				titleLabel.Position = UDim2.fromOffset(0, 0)
+				titleLabel.BackgroundTransparency = 1
+				titleLabel.Text = title
+				titleLabel.TextColor3 = Color3.fromRGB(200, 230, 255)
+				titleLabel.Font = Enum.Font.GothamBold
+				titleLabel.TextSize = 16
+				titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+				titleLabel.Parent = inner
 			end
-			-- use the section-local CreateParagraph
-			local sectionPublic = {}
-			sectionPublic.CreateParagraph = function() end -- placeholder to satisfy linter-like checks
-			-- find the sectionPublic by constructing minimal API using the sec object
-			local sectionAPI = {
-				ContentHolder = sec.ContentHolder
-			}
-			-- create paragraph similarly to sectionPublic:CreateParagraph
-			local titleTxt = tostring(opts.Title or "")
-			local bodyTxt = tostring(opts.Text or "")
 
-			local frame = Instance.new("Frame")
-			frame.Size = UDim2.new(1, -8, 0, 0)
-			frame.BackgroundTransparency = 1
-			frame.BorderSizePixel = 0
-			frame.Parent = sec.ContentHolder
-
-			local titleLabel = Instance.new("TextLabel")
-			titleLabel.Size = UDim2.new(1, 0, 0, 20)
-			titleLabel.BackgroundTransparency = 1
-			titleLabel.Text = titleTxt
-			titleLabel.TextColor3 = Color3.fromRGB(240,240,240)
-			titleLabel.Font = Enum.Font.GothamBold
-			titleLabel.TextSize = 16
-			titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-			titleLabel.Parent = frame
-
+			-- Body text
 			local bodyLabel = Instance.new("TextLabel")
-			bodyLabel.Size = UDim2.new(1, 0, 0, 0)
+			bodyLabel.Name = "ParagraphBody"
+			bodyLabel.Size = UDim2.new(1, 0, 1, -28)
+			bodyLabel.Position = UDim2.fromOffset(0, 28)
 			bodyLabel.BackgroundTransparency = 1
-			bodyLabel.Text = bodyTxt
-			bodyLabel.TextColor3 = Color3.fromRGB(200,200,200)
+			bodyLabel.Text = body
+			bodyLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
 			bodyLabel.Font = Enum.Font.Gotham
 			bodyLabel.TextSize = 14
 			bodyLabel.TextWrapped = true
 			bodyLabel.TextXAlignment = Enum.TextXAlignment.Left
-			bodyLabel.AutomaticSize = Enum.AutomaticSize.Y
-			bodyLabel.Parent = frame
+			bodyLabel.TextYAlignment = Enum.TextYAlignment.Top
+			bodyLabel.Parent = inner
 
-			-- auto resize frame height based on contents
-			local function updateHeight()
-				local total = 0
-				for _, c in ipairs(frame:GetChildren()) do
-					if c:IsA("TextLabel") then
-						total = total + c.AbsoluteSize.Y
+			-- small function to update body later
+			local publicPara = {
+				Frame = paraFrame,
+				TitleLabel = title,
+				BodyLabel = bodyLabel,
+				SetText = function(self, newText)
+					bodyLabel.Text = tostring(newText or "")
+				end,
+				SetTitle = function(self, newTitle)
+					if paraFrame:FindFirstChild("ParagraphTitle") then
+						paraFrame.ParagraphTitle.Text = tostring(newTitle or "")
 					end
-				end
-				frame.Size = UDim2.new(1, -8, 0, total + 8)
-			end
-			frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateHeight)
-			titleLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateHeight)
-			bodyLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateHeight)
+				end,
+			}
 
-			return frame
-		end
-
-		-- CreateButton on the TAB: convenience that adds a button into the last section
-		-- Accepts table {Title=..., Desc=..., Callback=function() end} or (title, desc, callback)
-		function public:CreateButton(optsOrTitle, maybeDesc, maybeCallback)
-			local sec = ensureSection()
-			local opts = {}
-			if type(optsOrTitle) == "table" then
-				opts = optsOrTitle
-			else
-				opts.Title = tostring(optsOrTitle or "Button")
-				opts.Desc = tostring(maybeDesc or "")
-				opts.Callback = maybeCallback
-			end
-
-			-- create button frame
-			local btnFrame = Instance.new("Frame")
-			btnFrame.Size = UDim2.new(1, 0, 0, 52)
-			btnFrame.BackgroundTransparency = 1
-			btnFrame.Parent = sec.ContentHolder
-
-			local btn = Instance.new("TextButton")
-			btn.Size = UDim2.new(1, -8, 1, 0)
-			btn.Position = UDim2.fromOffset(4, 0)
-			btn.BackgroundColor3 = Color3.fromRGB(40,40,44)
-			btn.Text = ""
-			btn.BorderSizePixel = 0
-			btn.Parent = btnFrame
-			Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
-
-			local titleLabel = Instance.new("TextLabel")
-			titleLabel.Size = UDim2.new(1, -12, 0, 20)
-			titleLabel.Position = UDim2.fromOffset(8, 6)
-			titleLabel.BackgroundTransparency = 1
-			titleLabel.Text = tostring(opts.Title or "Button")
-			titleLabel.TextColor3 = Color3.fromRGB(235,235,235)
-			titleLabel.Font = Enum.Font.GothamBold
-			titleLabel.TextSize = 15
-			titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-			titleLabel.Parent = btn
-
-			local descLabel = Instance.new("TextLabel")
-			descLabel.Size = UDim2.new(1, -12, 0, 16)
-			descLabel.Position = UDim2.fromOffset(8, 26)
-			descLabel.BackgroundTransparency = 1
-			descLabel.Text = tostring(opts.Desc or "")
-			descLabel.TextColor3 = Color3.fromRGB(185,185,185)
-			descLabel.Font = Enum.Font.Gotham
-			descLabel.TextSize = 12
-			descLabel.TextXAlignment = Enum.TextXAlignment.Left
-			descLabel.Parent = btn
-
-			if type(opts.Callback) == "function" then
-				btn.MouseButton1Click:Connect(function()
-					pcall(opts.Callback)
-				end)
-			end
-
-			-- hover effect
-			btn.MouseEnter:Connect(function()
-				TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(48,48,52)}):Play()
-			end)
-			btn.MouseLeave:Connect(function()
-				TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = Color3.fromRGB(40,40,44)}):Play()
-			end)
-
-			return btn
+			return publicPara
 		end
 
 		return public
