@@ -1,6 +1,7 @@
 --// Kaze UI Base
 --// Window System (PC + Mobile)
 --// Updated: shadow rounded corner fix; dividers matching outline (neon stroke thickness/color)
+--// Added: Tab system with CreateTab(name, iconId) - returns { Button, Page, Activate }
 
 local KazeUI = {}
 KazeUI.__index = KazeUI
@@ -418,6 +419,7 @@ function KazeUI:CreateWindow(config)
 	Content.BackgroundTransparency = 1
 	Content.Parent = Window
 
+	-- SideBar (will contain a ScrollingFrame for tabs)
 	local SideBar = Instance.new("Frame")
 	SideBar.Name = "SideBar"
 	SideBar.Size = UDim2.new(0, 180, 1, 0)
@@ -444,11 +446,173 @@ function KazeUI:CreateWindow(config)
 	vertDivStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	StartNeonLoop(vertDivStroke)
 
+	-- Right content area (pages)
+	local Pages = Instance.new("Frame")
+	Pages.Name = "Pages"
+	Pages.Position = UDim2.new(0, 182, 0, 0)
+	Pages.Size = UDim2.new(1, -182, 1, 0)
+	Pages.BackgroundColor3 = Color3.fromRGB(18, 18, 23)
+	Pages.BorderSizePixel = 0
+	Pages.Parent = Content
+	Instance.new("UICorner", Pages).CornerRadius = UDim.new(0, 12)
+
+	-- Tabs list (scrolling) inside the sidebar
+	local TabsList = Instance.new("ScrollingFrame")
+	TabsList.Name = "TabsList"
+	TabsList.Parent = SideBar
+	TabsList.Position = UDim2.fromOffset(12, 12)
+	TabsList.Size = UDim2.new(1, -24, 1, -24)
+	TabsList.BackgroundTransparency = 1
+	TabsList.BorderSizePixel = 0
+	TabsList.CanvasSize = UDim2.new(0, 0, 0, 0)
+	TabsList.ScrollBarThickness = 6
+	TabsList.VerticalScrollBarInset = Enum.ScrollBarInset.Always
+	TabsList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+	local tabsLayout = Instance.new("UIListLayout")
+	tabsLayout.Parent = TabsList
+	tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	tabsLayout.Padding = UDim.new(0, 10)
+
+	-- container to hold tab data
+	local createdTabs = {}
+
+	-- returned wrapper object (so caller can call :CreateTab)
+	local Win = {
+		Window = Window,
+		Content = Content,
+		Icon = Avatar,
+		MiniButton = MiniButton,
+		SideBar = SideBar,
+		_Pages = Pages, -- internal
+		_TabsList = TabsList,
+		_Tabs = createdTabs,
+		_Stroke = WindowStroke,
+	}
+
+	-- CreateTab API: name (string), iconId (number/string) optional
+	function Win:CreateTab(name, iconId)
+		name = tostring(name or "Tab")
+		local formattedIcon = FormatImage(iconId or "")
+
+		-- Button
+		local btn = Instance.new("TextButton")
+		btn.Name = "TabButton_" .. name
+		btn.Size = UDim2.new(1, -24, 0, 56)
+		btn.BackgroundColor3 = Color3.fromRGB(22,22,26)
+		btn.BorderSizePixel = 0
+		btn.Text = ""
+		btn.AutoButtonColor = true
+		btn.Parent = TabsList
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+
+		-- left indicator (cyan thin bar)
+		local leftIndicator = Instance.new("Frame")
+		leftIndicator.Name = "LeftIndicator"
+		leftIndicator.Size = UDim2.new(0, 4, 1, 0)
+		leftIndicator.Position = UDim2.new(0, 0, 0, 0)
+		leftIndicator.BackgroundColor3 = self._Stroke.Color
+		leftIndicator.BorderSizePixel = 0
+		leftIndicator.Visible = false
+		leftIndicator.Parent = btn
+		Instance.new("UICorner", leftIndicator).CornerRadius = UDim.new(0, 6)
+
+		-- Icon
+		local iconLabel = Instance.new("ImageLabel")
+		iconLabel.Name = "Icon"
+		iconLabel.Size = UDim2.fromOffset(36, 36)
+		iconLabel.Position = UDim2.fromOffset(12, 10)
+		iconLabel.BackgroundTransparency = 1
+		iconLabel.Image = formattedIcon
+		iconLabel.Parent = btn
+		Instance.new("UICorner", iconLabel).CornerRadius = UDim.new(1, 0)
+
+		-- Text
+		local txt = Instance.new("TextLabel")
+		txt.Name = "Label"
+		txt.Size = UDim2.new(1, -64, 1, 0)
+		txt.Position = UDim2.fromOffset(56, 0)
+		txt.BackgroundTransparency = 1
+		txt.Text = name
+		txt.TextColor3 = Color3.fromRGB(200,200,200)
+		txt.Font = Enum.Font.Gotham
+		txt.TextSize = 14
+		txt.TextXAlignment = Enum.TextXAlignment.Left
+		txt.Parent = btn
+
+		-- Page (content) created for the tab
+		local page = Instance.new("Frame")
+		page.Name = "Page_" .. name
+		page.Size = UDim2.new(1, 0, 1, 0)
+		page.Position = UDim2.new(0, 0, 0, 0)
+		page.BackgroundTransparency = 1
+		page.BorderSizePixel = 0
+		page.Parent = self._Pages
+		page.Visible = false
+
+		-- store tab
+		local tabObj = {
+			Button = btn,
+			Indicator = leftIndicator,
+			Label = txt,
+			Icon = iconLabel,
+			Page = page
+		}
+		table.insert(self._Tabs, tabObj)
+
+		-- activation function
+		local function activate()
+			for _, t in ipairs(self._Tabs) do
+				if t.Button and t.Indicator and t.Page then
+					t.Button.BackgroundColor3 = Color3.fromRGB(22,22,26)
+					t.Indicator.Visible = false
+					t.Page.Visible = false
+				end
+			end
+			-- set selected look
+			btn.BackgroundColor3 = Color3.fromRGB(30,30,34)
+			leftIndicator.Visible = true
+			page.Visible = true
+		end
+
+		-- click to activate
+		btn.MouseButton1Click:Connect(activate)
+
+		-- auto-activate first tab
+		if #self._Tabs == 1 then
+			activate()
+		end
+
+		-- expose Activate method on returned object
+		local public = {
+			Button = btn,
+			Page = page,
+			Activate = activate,
+			SetIcon = function(newIcon)
+				iconLabel.Image = FormatImage(newIcon)
+			end,
+			SetText = function(newText)
+				txt.Text = tostring(newText or "")
+			end,
+		}
+
+		return public
+	end
+
+	-- expose a convenience: get list of tabs
+	function Win:GetTabs()
+		local out = {}
+		for i, t in ipairs(self._Tabs) do
+			table.insert(out, {Index = i, Button = t.Button, Page = t.Page})
+		end
+		return out
+	end
+
 	if typeof(Callback) == "function" then
 		pcall(Callback)
 	end
 
-	return {Window = Window, Content = Content, Icon = Avatar, MiniButton = MiniButton, SideBar = SideBar}
+	return Win
 end
 
 return KazeUI
