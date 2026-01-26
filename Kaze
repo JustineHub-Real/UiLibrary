@@ -1,6 +1,7 @@
 --// Kaze UI Base
 --// Window System (PC + Mobile)
---// Updated: Tab improvements — rectangular tabs, stronger text contrast, hover animations, optimized tab width to use more of the sidebar without overflowing
+--// Updated: Section API for tabs (MainTab:Section(title[, color]))
+--// Sections use a blue header by default (matches window neon). Sections are returned so you can parent content into them.
 
 local KazeUI = {}
 KazeUI.__index = KazeUI
@@ -122,7 +123,7 @@ function KazeUI:CreateWindow(config)
 	Instance.new("UICorner", Window).CornerRadius = UDim.new(0, 14)
 
 	local WindowStroke = Instance.new("UIStroke")
-	WindowStroke.Color = Color3.fromRGB(0, 160, 255)
+	WindowStroke.Color = Color3.fromRGB(0, 160, 255) -- blue neon (used as default section color)
 	WindowStroke.Thickness = 2.5 -- neon thickness (used as reference)
 	WindowStroke.Parent = Window
 	StartNeonLoop(WindowStroke)
@@ -182,10 +183,9 @@ function KazeUI:CreateWindow(config)
 	-- TopBar bottom cyan divider (thin) using stroke so it matches outline thickness visually
 	local TopDivider = Instance.new("Frame")
 	TopDivider.Name = "TopDivider"
-	-- small filled frame (thin) — visual thickness controlled by stroke to match WindowStroke
 	TopDivider.Size = UDim2.new(1, 0, 0, 2)
 	TopDivider.Position = UDim2.new(0, 0, 1, -2)
-	TopDivider.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+	TopDivider.BackgroundColor3 = WindowStroke.Color
 	TopDivider.BorderSizePixel = 0
 	TopDivider.ZIndex = 5
 	TopDivider.Parent = TopBar
@@ -456,7 +456,6 @@ function KazeUI:CreateWindow(config)
 	Instance.new("UICorner", Pages).CornerRadius = UDim.new(0, 12)
 
 	-- Tabs list (scrolling) inside the sidebar
-	-- Adjusted padding/size so each tab can be wider but still stay inside the sidebar bounds.
 	local TabsList = Instance.new("ScrollingFrame")
 	TabsList.Name = "TabsList"
 	TabsList.Parent = SideBar
@@ -504,7 +503,6 @@ function KazeUI:CreateWindow(config)
 		local formattedIcon = FormatImage(iconId or "")
 
 		-- Button
-		-- Increased button width by using the TabsList's available width (1, -16) and reducing internal left padding for icon/text.
 		local btn = Instance.new("TextButton")
 		btn.Name = "TabButton_" .. name
 		btn.Size = UDim2.new(1, -16, 0, TAB_BUTTON_HEIGHT) -- slightly wider inside the sidebar
@@ -559,13 +557,38 @@ function KazeUI:CreateWindow(config)
 		page.Parent = self._Pages
 		page.Visible = false
 
+		-- Create a scrolling container inside the page to host sections (keeps content organized and scrollable)
+		local SectionsContainer = Instance.new("ScrollingFrame")
+		SectionsContainer.Name = "Sections"
+		SectionsContainer.Parent = page
+		SectionsContainer.Position = UDim2.fromOffset(12, 12)
+		SectionsContainer.Size = UDim2.new(1, -24, 1, -24)
+		SectionsContainer.BackgroundTransparency = 1
+		SectionsContainer.BorderSizePixel = 0
+		SectionsContainer.ScrollBarThickness = 6
+		SectionsContainer.VerticalScrollBarInset = Enum.ScrollBarInset.Always
+		SectionsContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
+
+		local sectionsLayout = Instance.new("UIListLayout")
+		sectionsLayout.Parent = SectionsContainer
+		sectionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		sectionsLayout.Padding = UDim.new(0, 12)
+
+		local sectionsPadding = Instance.new("UIPadding")
+		sectionsPadding.PaddingTop = UDim.new(0, 6)
+		sectionsPadding.PaddingBottom = UDim.new(0, 6)
+		sectionsPadding.PaddingLeft = UDim.new(0, 0)
+		sectionsPadding.PaddingRight = UDim.new(0, 0)
+		sectionsPadding.Parent = SectionsContainer
+
 		-- store tab
 		local tabObj = {
 			Button = btn,
 			Indicator = leftIndicator,
 			Label = txt,
 			Icon = iconLabel,
-			Page = page
+			Page = page,
+			Sections = SectionsContainer
 		}
 		table.insert(self._Tabs, tabObj)
 
@@ -617,7 +640,108 @@ function KazeUI:CreateWindow(config)
 			activate()
 		end
 
-		-- expose Activate method on returned object
+		-- Section creation API for this tab
+		-- Usage: local section = Tab:Section("Title") -- returns { Frame = sectionFrame, Content = contentHolder, SetColor = fn }
+		-- Optional second arg: color (Color3) to override default blue header
+		local function CreateSection(sectionTitle, colorOverride)
+			local headerColor = colorOverride or self._Stroke.Color or Color3.fromRGB(0,160,255)
+
+			local sectionFrame = Instance.new("Frame")
+			sectionFrame.Name = "Section_" .. tostring(sectionTitle or "Section")
+			sectionFrame.Size = UDim2.new(1, 0, 0, 120)
+			sectionFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
+			sectionFrame.BorderSizePixel = 0
+			sectionFrame.Parent = SectionsContainer
+			Instance.new("UICorner", sectionFrame).CornerRadius = UDim.new(0, 8)
+
+			-- Header
+			local header = Instance.new("Frame")
+			header.Name = "Header"
+			header.Size = UDim2.new(1, 0, 0, 34)
+			header.Position = UDim2.new(0, 0, 0, 0)
+			header.BackgroundColor3 = headerColor
+			header.BorderSizePixel = 0
+			header.Parent = sectionFrame
+			-- round only top corners for header
+			local headerCorner = Instance.new("UICorner", header)
+			headerCorner.CornerRadius = UDim.new(0, 8)
+
+			local headerLabel = Instance.new("TextLabel")
+			headerLabel.Name = "Title"
+			headerLabel.Size = UDim2.new(1, -16, 1, 0)
+			headerLabel.Position = UDim2.fromOffset(8, 0)
+			headerLabel.BackgroundTransparency = 1
+			headerLabel.Text = tostring(sectionTitle or "Section")
+			headerLabel.TextColor3 = Color3.fromRGB(245,245,245)
+			headerLabel.Font = Enum.Font.GothamBold
+			headerLabel.TextSize = 14
+			headerLabel.TextXAlignment = Enum.TextXAlignment.Left
+			headerLabel.Parent = header
+
+			-- Content holder inside section
+			local contentHolder = Instance.new("Frame")
+			contentHolder.Name = "Content"
+			contentHolder.Size = UDim2.new(1, -12, 1, -44) -- leave space for header + small padding
+			contentHolder.Position = UDim2.fromOffset(6, 40)
+			contentHolder.BackgroundTransparency = 1
+			contentHolder.BorderSizePixel = 0
+			contentHolder.Parent = sectionFrame
+
+			-- Layout inside content holder for user elements
+			local contentLayout = Instance.new("UIListLayout")
+			contentLayout.Parent = contentHolder
+			contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			contentLayout.Padding = UDim.new(0, 8)
+
+			-- Provide a lightweight API for the section
+			local sectionPublic = {
+				Frame = sectionFrame,
+				Content = contentHolder,
+				SetColor = function(newColor)
+					if typeof(newColor) == "Color3" then
+						header.BackgroundColor3 = newColor
+					end
+				end,
+				SetTitle = function(newTitle)
+					headerLabel.Text = tostring(newTitle or "")
+				end,
+				Destroy = function()
+					sectionFrame:Destroy()
+				end
+			}
+
+			-- Resize section height when content changes (automatic)
+			local function UpdateSectionSize()
+				local canvas = 0
+				-- calculate children content height
+				for i,child in ipairs(contentHolder:GetChildren()) do
+					if child:IsA("GuiObject") and child ~= contentLayout and child ~= sectionsLayout and child.Name ~= "UIListLayout" then
+						canvas = canvas + child.AbsoluteSize.Y + (contentLayout.Padding.Offset or 8)
+					end
+				end
+				-- minimum height for content
+				local minHeight = 60
+				local total = math.max(minHeight, canvas)
+				sectionFrame.Size = UDim2.new(1, 0, 0, 40 + total + 12) -- header (34) + content + padding
+			end
+
+			-- Connect to content child's absolute size changed (best-effort)
+			contentHolder.ChildAdded:Connect(function()
+				wait() -- allow layout to run
+				UpdateSectionSize()
+			end)
+			contentHolder.ChildRemoved:Connect(function()
+				wait()
+				UpdateSectionSize()
+			end)
+
+			-- initial size update
+			UpdateSectionSize()
+
+			return sectionPublic
+		end
+
+		-- public API for this tab (returned to user)
 		local public = {
 			Button = btn,
 			Page = page,
@@ -628,6 +752,7 @@ function KazeUI:CreateWindow(config)
 			SetText = function(newText)
 				txt.Text = tostring(newText or "")
 			end,
+			Section = CreateSection,
 		}
 
 		return public
