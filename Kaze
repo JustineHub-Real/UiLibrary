@@ -1,12 +1,10 @@
--- Kaze UI Library (fixed, centered Section paragraphs)
--- Notes:
---  - Full, ready-to-drop KazeUI.lua
---  - Paragraphs can be added to a Section using Section:AddParagraph(title, body)
---    which will center the paragraph inside the section and match the section width.
---  - Backwards-compatible: Tab:Paragraph(title, body) still works (it will be added
---    to the pageContent and not the section).
---  - Fixed nil Color errors and reduced glow opacity so there's no dark "blob".
---  - Paragraph text is white for readability.
+-- Kaze UI Library (fixed spacing / centered paragraphs inside sections)
+-- Changes in this version:
+--  - Section frames now use UIListLayout + AutomaticSize so they shrink to fit children (removes large empty gaps)
+--  - Section:AddParagraph centers the paragraph and uses AutomaticSize wrappers so spacing is tight
+--  - Reduced various paddings to make layout more compact and pretty
+--  - Safe neon loop and exposed window stroke for paragraph coloring
+-- Drop this file in place of your existing KazeUI.lua
 
 local KazeUI = {}
 KazeUI.__index = KazeUI
@@ -84,7 +82,7 @@ local function MakeDraggable(dragPart, targetPart)
 	end)
 end
 
--- Neon loop (safe)
+-- Safe neon loop
 local function StartNeonLoop(target)
 	if not target then return end
 	spawn(function()
@@ -98,7 +96,7 @@ local function StartNeonLoop(target)
 			if not propName then break end
 			local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 			local ok, tween = pcall(function()
-				return TweenService:Create(target, tweenInfo, { [propName] = Color3.fromRGB(0,255,255) })
+				return TweenService:Create(target, tweenInfo, { [propName] = Color3.fromRGB(0, 255, 255) })
 			end)
 			if ok and tween then tween:Play() end
 			break
@@ -117,7 +115,7 @@ function KazeUI:CreateWindow(config)
 	local MiniButtonSize = UDim2.fromOffset(60, 60)
 	local Callback = config.Callback
 
-	-- Main window frame
+	-- Main window
 	local Window = Instance.new("Frame")
 	Window.Name = "MainWindow"
 	Window.Size = UDim2.fromOffset(650, 420)
@@ -145,7 +143,7 @@ function KazeUI:CreateWindow(config)
 	Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0,14)
 	MakeDraggable(TopBar, Window)
 
-	-- Avatar + labels
+	-- Avatar + texts
 	local Avatar = Instance.new("ImageLabel")
 	Avatar.Name = "Avatar"
 	Avatar.Size = UDim2.fromOffset(36,36)
@@ -190,14 +188,13 @@ function KazeUI:CreateWindow(config)
 	TopDivider.ZIndex = 5
 	TopDivider.Parent = TopBar
 	Instance.new("UICorner", TopDivider).CornerRadius = UDim.new(0,6)
-	local topDivStroke = Instance.new("UIStroke")
-	topDivStroke.Parent = TopDivider
+	local topDivStroke = Instance.new("UIStroke", TopDivider)
 	topDivStroke.Color = WindowStroke.Color
 	topDivStroke.Thickness = WindowStroke.Thickness
 	topDivStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	StartNeonLoop(topDivStroke)
 
-	-- Traffic light buttons
+	-- Traffic lights
 	local defaultWindowSize = UDim2.fromOffset(650,420)
 	local lastNormalSize = defaultWindowSize
 	local lastNormalPosition = UDim2.fromScale(0.5,0.5)
@@ -222,7 +219,7 @@ function KazeUI:CreateWindow(config)
 	local BtnYellow = createCircleButton("BtnYellow", -88, Color3.fromRGB(255,204,51))
 	local BtnRed = createCircleButton("BtnRed", -56, Color3.fromRGB(235,80,80))
 
-	-- MiniButton for minimize
+	-- MiniButton
 	local MiniButton = Instance.new("ImageButton")
 	MiniButton.Name = "MiniButton"
 	MiniButton.Size = MiniButtonSize
@@ -428,7 +425,7 @@ function KazeUI:CreateWindow(config)
 	Pages.Parent = Content
 	Instance.new("UICorner", Pages).CornerRadius = UDim.new(0,12)
 
-	-- Tabs list
+	-- Tabs list (sidebar)
 	local TabsList = Instance.new("ScrollingFrame")
 	TabsList.Name = "TabsList"
 	TabsList.Parent = SideBar
@@ -443,10 +440,10 @@ function KazeUI:CreateWindow(config)
 	tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	tabsLayout.Padding = UDim.new(0,8)
 
-	-- tab container
+	-- Tab storage
 	local createdTabs = {}
 
-	-- appearance constants
+	-- Appearance
 	local TAB_BUTTON_HEIGHT = 44
 	local TAB_CORNER_RADIUS = 6
 	local TAB_BG = Color3.fromRGB(24,24,28)
@@ -454,7 +451,7 @@ function KazeUI:CreateWindow(config)
 	local TAB_TEXT_COLOR = Color3.fromRGB(240,240,240)
 	local TAB_TEXT_INACTIVE = Color3.fromRGB(200,200,200)
 
-	-- Window wrapper to return
+	-- Window wrapper
 	local Win = {
 		Window = Window,
 		Content = Content,
@@ -513,7 +510,6 @@ function KazeUI:CreateWindow(config)
 		local page = Instance.new("Frame")
 		page.Name = "Page_" .. name
 		page.Size = UDim2.new(1,0,1,0)
-		page.Position = UDim2.new(0,0,0,0)
 		page.BackgroundTransparency = 1
 		page.BorderSizePixel = 0
 		page.Parent = self._Pages
@@ -528,7 +524,7 @@ function KazeUI:CreateWindow(config)
 		pageContent.BorderSizePixel = 0
 		local contentLayout = Instance.new("UIListLayout", pageContent)
 		contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		contentLayout.Padding = UDim.new(0, 12)
+		contentLayout.Padding = UDim.new(0,8) -- reduced padding
 		contentLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 
 		-- store
@@ -581,258 +577,260 @@ function KazeUI:CreateWindow(config)
 
 		if #self._Tabs == 1 then activate() end
 
-		-- public api for the tab
+		-- public API
 		local public = {
 			Button = btn,
 			Page = page,
 			_PageContent = pageContent,
-			_Stroke = self._Stroke, -- expose window stroke so paragraphs can read accent
+			_Stroke = self._Stroke, -- expose accent stroke
 			Activate = activate,
 			SetIcon = function(newIcon) iconLabel.Image = FormatImage(newIcon) end,
 			SetText = function(newText) txt.Text = tostring(newText or "") end,
 		}
 
-		-- Section API
+		-- Section API: automatic sizing and centered content
 		function public:Section(title)
 			title = tostring(title or "")
-			-- wrapper for section content (full width)
+
 			local sectionFrame = Instance.new("Frame")
 			sectionFrame.Name = "Section_" .. title
-			sectionFrame.Size = UDim2.new(1, -24, 0, 96) -- initial height; grows with children
+			sectionFrame.Size = UDim2.new(1, -24, 0, 0) -- start zero height, AutomaticSize will grow
 			sectionFrame.BackgroundTransparency = 1
 			sectionFrame.BorderSizePixel = 0
 			sectionFrame.Parent = self._PageContent
+			sectionFrame.AutomaticSize = Enum.AutomaticSize.Y
 
-			-- Title area
-			local titleLabel = Instance.new("TextLabel", sectionFrame)
+			-- Use a UIListLayout to stack title, separator, and section content tightly
+			local sectionLayout = Instance.new("UIListLayout", sectionFrame)
+			sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			sectionLayout.Padding = UDim.new(0, 6)
+			sectionLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+			-- Title
+			local titleLabel = Instance.new("TextLabel")
 			titleLabel.Name = "SectionTitle"
 			titleLabel.Size = UDim2.new(1, 0, 0, 36)
-			titleLabel.Position = UDim2.fromOffset(0, 8)
 			titleLabel.BackgroundTransparency = 1
 			titleLabel.Text = title
-			titleLabel.TextColor3 = Color3.fromRGB(0,120,255) -- blue
+			titleLabel.TextColor3 = Color3.fromRGB(0,120,255)
 			titleLabel.Font = Enum.Font.GothamBold
 			titleLabel.TextSize = 22
 			titleLabel.TextWrapped = true
 			titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+			titleLabel.Parent = sectionFrame
 
-			-- separator
-			local sep = Instance.new("Frame", sectionFrame)
+			-- Separator
+			local sep = Instance.new("Frame")
 			sep.Name = "SectionSeparator"
 			sep.Size = UDim2.new(1, -40, 0, 2)
-			sep.Position = UDim2.fromOffset(20, 48)
-			sep.AnchorPoint = Vector2.new(0,0)
 			sep.BackgroundColor3 = Color3.fromRGB(38,38,42)
 			sep.BorderSizePixel = 0
 			Instance.new("UICorner", sep).CornerRadius = UDim.new(0,4)
+			sep.Parent = sectionFrame
 
-			-- Content holder inside section (stacks children)
-			local sectionContent = Instance.new("Frame", sectionFrame)
+			-- sectionContent holds centered children
+			local sectionContent = Instance.new("Frame")
 			sectionContent.Name = "SectionContent"
-			sectionContent.Size = UDim2.new(1, 0, 0, 48)
-			sectionContent.Position = UDim2.fromOffset(0, 64)
+			sectionContent.Size = UDim2.new(1, 0, 0, 0)
 			sectionContent.BackgroundTransparency = 1
 			sectionContent.BorderSizePixel = 0
+			sectionContent.Parent = sectionFrame
+			sectionContent.AutomaticSize = Enum.AutomaticSize.Y
 
 			local secLayout = Instance.new("UIListLayout", sectionContent)
 			secLayout.SortOrder = Enum.SortOrder.LayoutOrder
 			secLayout.Padding = UDim.new(0,8)
 			secLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			secLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 
-			-- keep sectionFrame height in sync with sectionContent
-			secLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-				local contentH = secLayout.AbsoluteContentSize.Y
-				sectionContent.Size = UDim2.new(1,0,0, contentH)
-				local total = 64 + contentH + 12 -- title area + content + padding
-				sectionFrame.Size = UDim2.new(1, -24, 0, math.max(96, total))
-			end)
+			-- Section API methods
+			local sectionPublic = {}
 
-			-- API for section: AddLabel + AddParagraph (centered)
-			local sectionPublic = {
-				Frame = sectionFrame,
-				TitleLabel = titleLabel,
-				AddLabel = function(self, text)
-					local label = Instance.new("TextLabel")
-					label.Size = UDim2.new(1, -40, 0, 24)
-					label.BackgroundTransparency = 1
-					label.Text = tostring(text or "")
-					label.TextColor3 = Color3.fromRGB(220,220,220)
-					label.Font = Enum.Font.Gotham
-					label.TextSize = 14
-					label.TextXAlignment = Enum.TextXAlignment.Left
-					label.Parent = sectionContent
-					return label
-				end,
-				AddParagraph = function(self, ptitle, pbody)
-					ptitle = tostring(ptitle or "")
-					pbody = tostring(pbody or "")
+			sectionPublic.Frame = sectionFrame
+			sectionPublic.TitleLabel = titleLabel
 
-					-- measure width from sectionContent (fallback if not measured yet)
-					local measuredWidth = 520
-					if sectionContent and sectionContent.AbsoluteSize and sectionContent.AbsoluteSize.X and sectionContent.AbsoluteSize.X > 0 then
-						measuredWidth = sectionContent.AbsoluteSize.X
-					end
+			function sectionPublic:AddLabel(text)
+				local label = Instance.new("TextLabel")
+				label.Size = UDim2.new(1, -40, 0, 24)
+				label.BackgroundTransparency = 1
+				label.Text = tostring(text or "")
+				label.TextColor3 = Color3.fromRGB(220,220,220)
+				label.Font = Enum.Font.Gotham
+				label.TextSize = 14
+				label.TextXAlignment = Enum.TextXAlignment.Left
+				label.Parent = sectionContent
+				return label
+			end
 
-					-- size calculations
-					local titleHeight = 0
-					if ptitle ~= "" then
-						local ts = TextService:GetTextSize(ptitle, 16, Enum.Font.GothamBold, Vector2.new(measuredWidth * 0.95 - 32, 1000))
-						titleHeight = math.max(22, math.ceil(ts.Y))
-					end
-					local bodySize = TextService:GetTextSize(pbody, 14, Enum.Font.Gotham, Vector2.new(measuredWidth * 0.95 - 32, 2000))
-					local bodyHeight = math.ceil(bodySize.Y)
-					local totalHeight = 12 + titleHeight + 8 + bodyHeight + 12
+			function sectionPublic:AddParagraph(ptitle, pbody)
+				ptitle = tostring(ptitle or "")
+				pbody = tostring(pbody or "")
 
-					-- wrapper so UIListLayout can center children
-					local wrapper = Instance.new("Frame")
-					wrapper.Name = "ParagraphWrapper"
-					wrapper.Size = UDim2.new(1, 0, 0, totalHeight + 20)
-					wrapper.BackgroundTransparency = 1
-					wrapper.Parent = sectionContent
+				-- measure available width (use 95% so paragraph doesn't touch edges)
+				local measuredWidth = 520
+				if sectionContent and sectionContent.AbsoluteSize and sectionContent.AbsoluteSize.X and sectionContent.AbsoluteSize.X > 0 then
+					measuredWidth = sectionContent.AbsoluteSize.X * 0.95
+				end
 
-					-- inner paragraph (centered horizontally)
-					local paraFrame = Instance.new("Frame", wrapper)
-					paraFrame.Name = "Paragraph"
-					paraFrame.AnchorPoint = Vector2.new(0.5,0)
-					paraFrame.Position = UDim2.new(0.5, 0, 0, 10)
-					paraFrame.Size = UDim2.new(0.95, 0, 0, totalHeight)
-					paraFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
-					paraFrame.BorderSizePixel = 0
-					Instance.new("UICorner", paraFrame).CornerRadius = UDim.new(0,8)
-					paraFrame.ZIndex = 2
+				local titleHeight = 0
+				if ptitle ~= "" then
+					local ts = TextService:GetTextSize(ptitle, 16, Enum.Font.GothamBold, Vector2.new(measuredWidth - 32, 1000))
+					titleHeight = math.max(20, math.ceil(ts.Y))
+				end
+				local bodySize = TextService:GetTextSize(pbody, 14, Enum.Font.Gotham, Vector2.new(measuredWidth - 32, 2000))
+				local bodyHeight = math.ceil(bodySize.Y)
+				local totalHeight = 10 + titleHeight + 6 + bodyHeight + 10
 
-					-- faint glow behind paragraph (very subtle)
-					local glow = Instance.new("Frame", wrapper)
-					glow.Name = "ParagraphGlow"
-					glow.AnchorPoint = Vector2.new(0.5,0)
-					glow.Position = UDim2.new(0.5, 0, 0, 8)
-					glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 14)
-					glow.BackgroundTransparency = 0.96 -- very faint (prevent dark blob)
-					glow.BorderSizePixel = 0
-					if Win._Stroke and Win._Stroke.Color then
-						glow.BackgroundColor3 = Win._Stroke.Color
-					else
-						glow.BackgroundColor3 = Color3.fromRGB(0,160,255)
-					end
-					Instance.new("UICorner", glow).CornerRadius = UDim.new(0,10)
-					StartNeonLoop(glow)
+				-- wrapper auto size (so layout sizes correctly)
+				local wrapper = Instance.new("Frame")
+				wrapper.Name = "ParagraphWrapper"
+				wrapper.Size = UDim2.new(1, 0, 0, 0)
+				wrapper.BackgroundTransparency = 1
+				wrapper.Parent = sectionContent
+				wrapper.AutomaticSize = Enum.AutomaticSize.Y
 
-					-- stroke on paragraph
-					local paraStroke = Instance.new("UIStroke", paraFrame)
-					paraStroke.Thickness = 2
-					paraStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-					if Win._Stroke and Win._Stroke.Color then
-						paraStroke.Color = Win._Stroke.Color
-					else
-						paraStroke.Color = Color3.fromRGB(0,160,255)
-					end
-					StartNeonLoop(paraStroke)
+				-- paragraph frame centered horizontally inside wrapper
+				local paraFrame = Instance.new("Frame")
+				paraFrame.Name = "Paragraph"
+				paraFrame.AnchorPoint = Vector2.new(0.5, 0)
+				paraFrame.Position = UDim2.new(0.5, 0, 0, 6)
+				paraFrame.Size = UDim2.new(0.95, 0, 0, totalHeight)
+				paraFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
+				paraFrame.BorderSizePixel = 0
+				Instance.new("UICorner", paraFrame).CornerRadius = UDim.new(0,8)
+				paraFrame.Parent = wrapper
+				paraFrame.ZIndex = 2
 
-					-- inner padding
-					local inner = Instance.new("Frame", paraFrame)
-					inner.Size = UDim2.new(1, -20, 1, -20)
-					inner.Position = UDim2.fromOffset(10,10)
-					inner.BackgroundTransparency = 1
-					inner.BorderSizePixel = 0
+				-- faint glow behind paragraph
+				local glow = Instance.new("Frame")
+				glow.Name = "ParagraphGlow"
+				glow.AnchorPoint = Vector2.new(0.5,0)
+				glow.Position = UDim2.new(0.5, 0, 0, 4)
+				glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 10)
+				glow.BackgroundTransparency = 0.96 -- very faint to avoid dark blob
+				if Win._Stroke and Win._Stroke.Color then
+					glow.BackgroundColor3 = Win._Stroke.Color
+				else
+					glow.BackgroundColor3 = Color3.fromRGB(0,160,255)
+				end
+				Instance.new("UICorner", glow).CornerRadius = UDim.new(0,10)
+				glow.Parent = wrapper
+				StartNeonLoop(glow)
 
-					-- title
-					if ptitle ~= "" then
-						local titleLabel = Instance.new("TextLabel", inner)
-						titleLabel.Name = "ParagraphTitle"
-						titleLabel.Size = UDim2.new(1, 0, 0, titleHeight)
-						titleLabel.Position = UDim2.fromOffset(0,0)
-						titleLabel.BackgroundTransparency = 1
-						titleLabel.Text = ptitle
-						titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
-						titleLabel.Font = Enum.Font.GothamBold
-						titleLabel.TextSize = 16
-						titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-						titleLabel.TextWrapped = true
-					end
+				-- outline stroke
+				local paraStroke = Instance.new("UIStroke", paraFrame)
+				paraStroke.Thickness = 2
+				paraStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+				if Win._Stroke and Win._Stroke.Color then
+					paraStroke.Color = Win._Stroke.Color
+				else
+					paraStroke.Color = Color3.fromRGB(0,160,255)
+				end
+				StartNeonLoop(paraStroke)
 
-					-- body
-					local bodyLabel = Instance.new("TextLabel", inner)
-					bodyLabel.Name = "ParagraphBody"
-					bodyLabel.Size = UDim2.new(1, 0, 0, bodyHeight)
-					bodyLabel.Position = UDim2.fromOffset(0, titleHeight + 8)
-					bodyLabel.BackgroundTransparency = 1
-					bodyLabel.Text = pbody
-					bodyLabel.TextColor3 = Color3.fromRGB(255,255,255)
-					bodyLabel.Font = Enum.Font.Gotham
-					bodyLabel.TextSize = 14
-					bodyLabel.TextWrapped = true
-					bodyLabel.TextXAlignment = Enum.TextXAlignment.Left
-					bodyLabel.TextYAlignment = Enum.TextYAlignment.Top
+				-- inner padding
+				local inner = Instance.new("Frame", paraFrame)
+				inner.Size = UDim2.new(1, -20, 1, -20)
+				inner.Position = UDim2.fromOffset(10,10)
+				inner.BackgroundTransparency = 1
 
-					-- return small API
-					local paraPublic = {
-						Wrapper = wrapper,
-						Frame = paraFrame,
-						BodyLabel = bodyLabel,
-						SetText = function(self, newText)
-							newText = tostring(newText or "")
-							bodyLabel.Text = newText
-							-- remeasure and adjust sizes (defer to allow layout)
-							task.defer(function()
-								local w = 520
-								if sectionContent and sectionContent.AbsoluteSize and sectionContent.AbsoluteSize.X > 0 then
-									w = sectionContent.AbsoluteSize.X * 0.95
-								end
-								local newTitleH = 0
-								if ptitle ~= "" then
-									local ts2 = TextService:GetTextSize(ptitle, 16, Enum.Font.GothamBold, Vector2.new(w - 32, 1000))
-									newTitleH = math.max(22, math.ceil(ts2.Y))
-								end
-								local newBodySize2 = TextService:GetTextSize(newText, 14, Enum.Font.Gotham, Vector2.new(w - 32, 2000))
-								local newBodyH2 = math.ceil(newBodySize2.Y)
-								local newTotal = 12 + newTitleH + 8 + newBodyH2 + 12
-								paraFrame.Size = UDim2.new(0.95, 0, 0, newTotal)
-								glow.Size = UDim2.new(0.96, 0, 0, newTotal + 14)
-								wrapper.Size = UDim2.new(1,0,0,newTotal + 20)
-								if paraFrame:FindFirstChild("ParagraphTitle") then
-									paraFrame.ParagraphTitle.Size = UDim2.new(1,0,0,newTitleH)
-								end
-								bodyLabel.Size = UDim2.new(1,0,0,newBodyH2)
-							end)
-						end,
-					}
-					return paraPublic
-				end,
-			}
+				-- title label
+				if ptitle ~= "" then
+					local ptitleLabel = Instance.new("TextLabel", inner)
+					ptitleLabel.Name = "ParagraphTitle"
+					ptitleLabel.Size = UDim2.new(1,0,0,titleHeight)
+					ptitleLabel.Position = UDim2.fromOffset(0,0)
+					ptitleLabel.BackgroundTransparency = 1
+					ptitleLabel.Text = ptitle
+					ptitleLabel.TextColor3 = Color3.fromRGB(255,255,255)
+					ptitleLabel.Font = Enum.Font.GothamBold
+					ptitleLabel.TextSize = 16
+					ptitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+					ptitleLabel.TextWrapped = true
+				end
+
+				-- body label
+				local bodyLabel = Instance.new("TextLabel", inner)
+				bodyLabel.Name = "ParagraphBody"
+				bodyLabel.Size = UDim2.new(1,0,0,bodyHeight)
+				bodyLabel.Position = UDim2.fromOffset(0, titleHeight + 6)
+				bodyLabel.BackgroundTransparency = 1
+				bodyLabel.Text = pbody
+				bodyLabel.TextColor3 = Color3.fromRGB(255,255,255)
+				bodyLabel.Font = Enum.Font.Gotham
+				bodyLabel.TextSize = 14
+				bodyLabel.TextWrapped = true
+				bodyLabel.TextXAlignment = Enum.TextXAlignment.Left
+				bodyLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+				-- return API for the paragraph
+				local paraAPI = {
+					Wrapper = wrapper,
+					Frame = paraFrame,
+					BodyLabel = bodyLabel,
+					SetText = function(self, newText)
+						newText = tostring(newText or "")
+						bodyLabel.Text = newText
+						task.defer(function()
+							local w = measuredWidth
+							if sectionContent and sectionContent.AbsoluteSize and sectionContent.AbsoluteSize.X > 0 then
+								w = sectionContent.AbsoluteSize.X * 0.95
+							end
+							local newTitleH = 0
+							if ptitle ~= "" then
+								local ts2 = TextService:GetTextSize(ptitle, 16, Enum.Font.GothamBold, Vector2.new(w - 32, 1000))
+								newTitleH = math.max(20, math.ceil(ts2.Y))
+							end
+							local newBodySize = TextService:GetTextSize(newText, 14, Enum.Font.Gotham, Vector2.new(w - 32, 2000))
+							local newBodyH = math.ceil(newBodySize.Y)
+							local newTotal = 10 + newTitleH + 6 + newBodyH + 10
+							paraFrame.Size = UDim2.new(0.95,0,0,newTotal)
+							glow.Size = UDim2.new(0.96,0,0,newTotal + 10)
+							if paraFrame:FindFirstChild("ParagraphTitle") then
+								paraFrame.ParagraphTitle.Size = UDim2.new(1,0,0,newTitleH)
+							end
+							bodyLabel.Size = UDim2.new(1,0,0,newBodyH)
+							wrapper.Size = UDim2.new(1,0,0,newTotal + 12)
+						end)
+					end,
+				}
+				return paraAPI
+			end
+
 			return sectionPublic
 		end
 
-		-- Tab-level Paragraph (backwards compatible) - adds to page content (not the section)
+		-- Backwards-compatible Tab:Paragraph (adds centered paragraph into page)
 		function public:Paragraph(ptitle, pbody)
-			-- reuse section's centered paragraph logic but inside pageContent (as full-width wrapper)
 			ptitle = tostring(ptitle or "")
 			pbody = tostring(pbody or "")
-			local pageContentRef = self._PageContent
 
+			local pageContentRef = self._PageContent
 			local measuredWidth = 520
 			if pageContentRef and pageContentRef.AbsoluteSize and pageContentRef.AbsoluteSize.X and pageContentRef.AbsoluteSize.X > 0 then
-				measuredWidth = pageContentRef.AbsoluteSize.X
+				measuredWidth = pageContentRef.AbsoluteSize.X * 0.95
 			end
+
 			local titleHeight = 0
 			if ptitle ~= "" then
-				local ts = TextService:GetTextSize(ptitle, 16, Enum.Font.GothamBold, Vector2.new(measuredWidth * 0.95 - 32, 1000))
-				titleHeight = math.max(22, math.ceil(ts.Y))
+				local ts = TextService:GetTextSize(ptitle, 16, Enum.Font.GothamBold, Vector2.new(measuredWidth - 32, 1000))
+				titleHeight = math.max(20, math.ceil(ts.Y))
 			end
-			local bodySize = TextService:GetTextSize(pbody, 14, Enum.Font.Gotham, Vector2.new(measuredWidth * 0.95 - 32, 2000))
+			local bodySize = TextService:GetTextSize(pbody, 14, Enum.Font.Gotham, Vector2.new(measuredWidth - 32, 2000))
 			local bodyHeight = math.ceil(bodySize.Y)
-			local totalHeight = 12 + titleHeight + 8 + bodyHeight + 12
+			local totalHeight = 10 + titleHeight + 6 + bodyHeight + 10
 
-			-- wrapper for centering in pageContent
 			local wrapper = Instance.new("Frame")
 			wrapper.Name = "ParagraphWrapper"
-			wrapper.Size = UDim2.new(1,0,0,totalHeight + 20)
+			wrapper.Size = UDim2.new(1,0,0,0)
 			wrapper.BackgroundTransparency = 1
 			wrapper.Parent = pageContentRef
+			wrapper.AutomaticSize = Enum.AutomaticSize.Y
 
 			local paraFrame = Instance.new("Frame", wrapper)
 			paraFrame.Name = "Paragraph"
 			paraFrame.AnchorPoint = Vector2.new(0.5,0)
-			paraFrame.Position = UDim2.new(0.5, 0, 0, 10)
+			paraFrame.Position = UDim2.new(0.5, 0, 0, 6)
 			paraFrame.Size = UDim2.new(0.95, 0, 0, totalHeight)
 			paraFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
 			Instance.new("UICorner", paraFrame).CornerRadius = UDim.new(0,8)
@@ -840,14 +838,14 @@ function KazeUI:CreateWindow(config)
 			local glow = Instance.new("Frame", wrapper)
 			glow.Name = "ParagraphGlow"
 			glow.AnchorPoint = Vector2.new(0.5,0)
-			glow.Position = UDim2.new(0.5, 0, 0, 8)
-			glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 14)
+			glow.Position = UDim2.new(0.5, 0, 0, 4)
+			glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 10)
+			glow.BackgroundTransparency = 0.96
 			if self._Stroke and self._Stroke.Color then
 				glow.BackgroundColor3 = self._Stroke.Color
 			else
 				glow.BackgroundColor3 = Color3.fromRGB(0,160,255)
 			end
-			glow.BackgroundTransparency = 0.96 -- very faint
 			Instance.new("UICorner", glow).CornerRadius = UDim.new(0,10)
 			StartNeonLoop(glow)
 
@@ -867,23 +865,23 @@ function KazeUI:CreateWindow(config)
 			inner.BackgroundTransparency = 1
 
 			if ptitle ~= "" then
-				local titleLabel = Instance.new("TextLabel", inner)
-				titleLabel.Name = "ParagraphTitle"
-				titleLabel.Size = UDim2.new(1,0,0,titleHeight)
-				titleLabel.Position = UDim2.fromOffset(0,0)
-				titleLabel.BackgroundTransparency = 1
-				titleLabel.Text = ptitle
-				titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
-				titleLabel.Font = Enum.Font.GothamBold
-				titleLabel.TextSize = 16
-				titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-				titleLabel.TextWrapped = true
+				local ptitleLabel = Instance.new("TextLabel", inner)
+				ptitleLabel.Name = "ParagraphTitle"
+				ptitleLabel.Size = UDim2.new(1,0,0,titleHeight)
+				ptitleLabel.Position = UDim2.fromOffset(0,0)
+				ptitleLabel.BackgroundTransparency = 1
+				ptitleLabel.Text = ptitle
+				ptitleLabel.TextColor3 = Color3.fromRGB(255,255,255)
+				ptitleLabel.Font = Enum.Font.GothamBold
+				ptitleLabel.TextSize = 16
+				ptitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+				ptitleLabel.TextWrapped = true
 			end
 
 			local bodyLabel = Instance.new("TextLabel", inner)
 			bodyLabel.Name = "ParagraphBody"
 			bodyLabel.Size = UDim2.new(1,0,0,bodyHeight)
-			bodyLabel.Position = UDim2.fromOffset(0, titleHeight + 8)
+			bodyLabel.Position = UDim2.fromOffset(0, titleHeight + 6)
 			bodyLabel.BackgroundTransparency = 1
 			bodyLabel.Text = pbody
 			bodyLabel.TextColor3 = Color3.fromRGB(255,255,255)
@@ -901,21 +899,21 @@ function KazeUI:CreateWindow(config)
 					newText = tostring(newText or "")
 					bodyLabel.Text = newText
 					task.defer(function()
-						local w = 520
+						local w = measuredWidth
 						if pageContentRef and pageContentRef.AbsoluteSize and pageContentRef.AbsoluteSize.X > 0 then
 							w = pageContentRef.AbsoluteSize.X * 0.95
 						end
 						local newTitleH = 0
 						if ptitle ~= "" then
 							local ts2 = TextService:GetTextSize(ptitle, 16, Enum.Font.GothamBold, Vector2.new(w - 32, 1000))
-							newTitleH = math.max(22, math.ceil(ts2.Y))
+							newTitleH = math.max(20, math.ceil(ts2.Y))
 						end
 						local newBodySize2 = TextService:GetTextSize(newText, 14, Enum.Font.Gotham, Vector2.new(w - 32, 2000))
 						local newBodyH2 = math.ceil(newBodySize2.Y)
-						local newTotal = 12 + newTitleH + 8 + newBodyH2 + 12
+						local newTotal = 10 + newTitleH + 6 + newBodyH2 + 10
 						paraFrame.Size = UDim2.new(0.95,0,0,newTotal)
-						glow.Size = UDim2.new(0.96,0,0,newTotal + 14)
-						wrapper.Size = UDim2.new(1,0,0,newTotal + 20)
+						glow.Size = UDim2.new(0.96,0,0,newTotal + 10)
+						wrapper.Size = UDim2.new(1,0,0,newTotal + 12)
 						if paraFrame:FindFirstChild("ParagraphTitle") then
 							paraFrame.ParagraphTitle.Size = UDim2.new(1,0,0,newTitleH)
 						end
@@ -929,7 +927,7 @@ function KazeUI:CreateWindow(config)
 		return public
 	end
 
-	-- convenience: list tabs
+	-- list tabs convenience
 	function Win:GetTabs()
 		local out = {}
 		for i,t in ipairs(self._Tabs) do
@@ -938,10 +936,7 @@ function KazeUI:CreateWindow(config)
 		return out
 	end
 
-	if typeof(Callback) == "function" then
-		pcall(Callback)
-	end
-
+	if typeof(Callback) == "function" then pcall(Callback) end
 	return Win
 end
 
