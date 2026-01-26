@@ -1,7 +1,8 @@
 --// Kaze UI Base
 --// Window System (PC + Mobile)
---// Updated: Section API for tabs (MainTab:Section(title[, color]))
---// Sections use a blue header by default (matches window neon). Sections are returned so you can parent content into them.
+--// Updated: Section/Page header improvements — page title (centered) with blue text matching neon outline.
+--// When you call Tab:Section("Title"), the page will show a large centered title in blue by default.
+--// You can override the title color by passing a Color3 as the second parameter to :Section(title, color)
 
 local KazeUI = {}
 KazeUI.__index = KazeUI
@@ -123,7 +124,7 @@ function KazeUI:CreateWindow(config)
 	Instance.new("UICorner", Window).CornerRadius = UDim.new(0, 14)
 
 	local WindowStroke = Instance.new("UIStroke")
-	WindowStroke.Color = Color3.fromRGB(0, 160, 255) -- blue neon (used as default section color)
+	WindowStroke.Color = Color3.fromRGB(0, 160, 255) -- blue neon (used as default color)
 	WindowStroke.Thickness = 2.5 -- neon thickness (used as reference)
 	WindowStroke.Parent = Window
 	StartNeonLoop(WindowStroke)
@@ -198,7 +199,7 @@ function KazeUI:CreateWindow(config)
 	topDivStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	StartNeonLoop(topDivStroke)
 
-	--// Traffic-light buttons
+	--// Traffic-light buttons (unchanged)
 	local defaultWindowSize = UDim2.fromOffset(650, 420)
 	local lastNormalSize = defaultWindowSize
 	local lastNormalPosition = UDim2.fromScale(0.5, 0.5)
@@ -225,7 +226,7 @@ function KazeUI:CreateWindow(config)
 	local BtnYellow = createCircleButton("BtnYellow", -88, Color3.fromRGB(255, 204, 51))
 	local BtnRed = createCircleButton("BtnRed", -56, Color3.fromRGB(235, 80, 80))
 
-	-- Minimize behavior (yellow) + MiniButton
+	-- Minimize behavior (unchanged)
 	local MiniButton = Instance.new("ImageButton")
 	MiniButton.Name = "MiniButton"
 	MiniButton.Size = MiniButtonSize
@@ -274,7 +275,7 @@ function KazeUI:CreateWindow(config)
 
 	BtnYellow.MouseButton1Click:Connect(minimizeWindow)
 
-	-- Green toggle maximize/restore (store previous)
+	-- Green toggle maximize/restore (unchanged)
 	BtnGreen.MouseButton1Click:Connect(function()
 		if not toggledMaximized then
 			lastNormalSize = Window.Size
@@ -295,7 +296,7 @@ function KazeUI:CreateWindow(config)
 		end
 	end)
 
-	-- restore from MiniButton respecting maximized flag
+	-- restore from MiniButton respecting maximized flag (unchanged)
 	MiniButton.MouseButton1Click:Connect(function()
 		MiniButton.Visible = false
 		Window.Visible = true
@@ -311,7 +312,7 @@ function KazeUI:CreateWindow(config)
 		end
 	end)
 
-	-- Close confirm (red) — improved rounded shadow + matching neon outline on dialog
+	-- Close confirm (unchanged)
 	local function ShowCloseConfirm()
 		BtnYellow.Active = false
 		BtnGreen.Active = false
@@ -323,9 +324,8 @@ function KazeUI:CreateWindow(config)
 		Overlay.ZIndex = 50
 		Overlay.Parent = Window
 
-		-- Shadow behind confirm window (slightly larger, rounded)
 		local Shadow = Instance.new("Frame")
-		Shadow.Size = UDim2.fromOffset(364, 164) -- slightly larger so rounded shadow visible
+		Shadow.Size = UDim2.fromOffset(364, 164)
 		Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
 		Shadow.Position = UDim2.fromScale(0.5, 0.5)
 		Shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -333,7 +333,7 @@ function KazeUI:CreateWindow(config)
 		Shadow.ZIndex = 51
 		Shadow.Parent = Overlay
 		local shadowCorner = Instance.new("UICorner", Shadow)
-		shadowCorner.CornerRadius = UDim.new(0, 14) -- match dialog rounding
+		shadowCorner.CornerRadius = UDim.new(0, 14)
 
 		local ConfirmWindow = Instance.new("Frame")
 		ConfirmWindow.Size = UDim2.fromOffset(350, 150)
@@ -344,7 +344,6 @@ function KazeUI:CreateWindow(config)
 		ConfirmWindow.Parent = Overlay
 		Instance.new("UICorner", ConfirmWindow).CornerRadius = UDim.new(0, 12)
 
-		-- neon outline for confirm window (matching WindowStroke)
 		local confirmStroke = Instance.new("UIStroke", ConfirmWindow)
 		confirmStroke.Color = WindowStroke.Color
 		confirmStroke.Thickness = 2.5
@@ -431,7 +430,7 @@ function KazeUI:CreateWindow(config)
 	-- thin divider using stroke to match outline thickness
 	local VertDivider = Instance.new("Frame")
 	VertDivider.Name = "VertDivider"
-	VertDivider.Size = UDim2.new(0, 2, 1, 0) -- thin filled bar; stroke will give neon thickness
+	VertDivider.Size = UDim2.new(0, 2, 1, 0)
 	VertDivider.Position = UDim2.new(0, 180, 0, 0)
 	VertDivider.BackgroundColor3 = WindowStroke.Color
 	VertDivider.BorderSizePixel = 0
@@ -441,7 +440,7 @@ function KazeUI:CreateWindow(config)
 	local vertDivStroke = Instance.new("UIStroke")
 	vertDivStroke.Parent = VertDivider
 	vertDivStroke.Color = WindowStroke.Color
-	vertDivStroke.Thickness = WindowStroke.Thickness -- match outline thickness
+	vertDivStroke.Thickness = WindowStroke.Thickness
 	vertDivStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	StartNeonLoop(vertDivStroke)
 
@@ -459,8 +458,8 @@ function KazeUI:CreateWindow(config)
 	local TabsList = Instance.new("ScrollingFrame")
 	TabsList.Name = "TabsList"
 	TabsList.Parent = SideBar
-	TabsList.Position = UDim2.fromOffset(8, 8)        -- reduced padding to gain width
-	TabsList.Size = UDim2.new(1, -16, 1, -16)        -- use more of the sidebar width while not overflowing
+	TabsList.Position = UDim2.fromOffset(8, 8)
+	TabsList.Size = UDim2.new(1, -16, 1, -16)
 	TabsList.BackgroundTransparency = 1
 	TabsList.BorderSizePixel = 0
 	TabsList.CanvasSize = UDim2.new(0, 0, 0, 0)
@@ -477,8 +476,8 @@ function KazeUI:CreateWindow(config)
 	local createdTabs = {}
 
 	-- small constants for tab appearance (easy to tweak)
-	local TAB_BUTTON_HEIGHT = 44      -- reduced height to make tabs more rectangular (less "taba")
-	local TAB_CORNER_RADIUS = 6       -- smaller corner radius for a more rectangular look
+	local TAB_BUTTON_HEIGHT = 44
+	local TAB_CORNER_RADIUS = 6
 	local TAB_BG = Color3.fromRGB(24,24,28)
 	local TAB_BG_ACTIVE = Color3.fromRGB(32,32,36)
 	local TAB_TEXT_COLOR = Color3.fromRGB(240,240,240)
@@ -502,18 +501,17 @@ function KazeUI:CreateWindow(config)
 		name = tostring(name or "Tab")
 		local formattedIcon = FormatImage(iconId or "")
 
-		-- Button
+		-- Button in sidebar
 		local btn = Instance.new("TextButton")
 		btn.Name = "TabButton_" .. name
-		btn.Size = UDim2.new(1, -16, 0, TAB_BUTTON_HEIGHT) -- slightly wider inside the sidebar
+		btn.Size = UDim2.new(1, -16, 0, TAB_BUTTON_HEIGHT)
 		btn.BackgroundColor3 = TAB_BG
 		btn.BorderSizePixel = 0
 		btn.Text = ""
-		btn.AutoButtonColor = false -- we'll handle hover/pressed visuals
+		btn.AutoButtonColor = false
 		btn.Parent = TabsList
 		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, TAB_CORNER_RADIUS)
 
-		-- left indicator (cyan thin bar)
 		local leftIndicator = Instance.new("Frame")
 		leftIndicator.Name = "LeftIndicator"
 		leftIndicator.Size = UDim2.new(0, 4, 1, 0)
@@ -524,21 +522,19 @@ function KazeUI:CreateWindow(config)
 		leftIndicator.Parent = btn
 		Instance.new("UICorner", leftIndicator).CornerRadius = UDim.new(0, 6)
 
-		-- Icon (left, vertically centered) — made slightly smaller and moved a bit left so label has more room
 		local iconLabel = Instance.new("ImageLabel")
 		iconLabel.Name = "Icon"
-		iconLabel.Size = UDim2.fromOffset(28, 28) -- smaller icon to free space
+		iconLabel.Size = UDim2.fromOffset(28, 28)
 		iconLabel.Position = UDim2.new(0, 10, 0.5, -14)
 		iconLabel.BackgroundTransparency = 1
 		iconLabel.Image = formattedIcon
 		iconLabel.Parent = btn
 		Instance.new("UICorner", iconLabel).CornerRadius = UDim.new(1, 0)
 
-		-- Text (clearer, bolder for active)
 		local txt = Instance.new("TextLabel")
 		txt.Name = "Label"
-		txt.Size = UDim2.new(1, -56, 1, 0)            -- reduced right padding to allow more text space
-		txt.Position = UDim2.fromOffset(48, 0)        -- moved left closer to icon so it gains width
+		txt.Size = UDim2.new(1, -56, 1, 0)
+		txt.Position = UDim2.fromOffset(48, 0)
 		txt.BackgroundTransparency = 1
 		txt.Text = name
 		txt.TextColor3 = TAB_TEXT_INACTIVE
@@ -557,12 +553,28 @@ function KazeUI:CreateWindow(config)
 		page.Parent = self._Pages
 		page.Visible = false
 
-		-- Create a scrolling container inside the page to host sections (keeps content organized and scrollable)
+		-- Page header (centered title) - invisible until a section with title is created
+		local pageHeader = Instance.new("TextLabel")
+		pageHeader.Name = "PageHeader"
+		pageHeader.Size = UDim2.new(0.8, 0, 0, 30)
+		pageHeader.AnchorPoint = Vector2.new(0.5, 0)
+		pageHeader.Position = UDim2.new(0.5, 0, 0, 8)
+		pageHeader.BackgroundTransparency = 1
+		pageHeader.Text = ""
+		pageHeader.TextColor3 = self._Stroke.Color -- blue neon
+		pageHeader.Font = Enum.Font.GothamBold
+		pageHeader.TextSize = 20
+		pageHeader.TextXAlignment = Enum.TextXAlignment.Center
+		pageHeader.Visible = false
+		pageHeader.ZIndex = 10
+		pageHeader.Parent = page
+
+		-- Create a scrolling container inside the page to host sections
 		local SectionsContainer = Instance.new("ScrollingFrame")
 		SectionsContainer.Name = "Sections"
 		SectionsContainer.Parent = page
-		SectionsContainer.Position = UDim2.fromOffset(12, 12)
-		SectionsContainer.Size = UDim2.new(1, -24, 1, -24)
+		SectionsContainer.Position = UDim2.fromOffset(12, 48) -- leave room for pageHeader
+		SectionsContainer.Size = UDim2.new(1, -24, 1, -60)
 		SectionsContainer.BackgroundTransparency = 1
 		SectionsContainer.BorderSizePixel = 0
 		SectionsContainer.ScrollBarThickness = 6
@@ -588,7 +600,8 @@ function KazeUI:CreateWindow(config)
 			Label = txt,
 			Icon = iconLabel,
 			Page = page,
-			Sections = SectionsContainer
+			Sections = SectionsContainer,
+			PageHeader = pageHeader
 		}
 		table.insert(self._Tabs, tabObj)
 
@@ -596,7 +609,6 @@ function KazeUI:CreateWindow(config)
 		local function activate()
 			for _, t in ipairs(self._Tabs) do
 				if t.Button and t.Indicator and t.Page and t.Label then
-					-- reset visuals
 					TweenService:Create(t.Button, TweenInfo.new(0.12), {BackgroundColor3 = TAB_BG}):Play()
 					t.Indicator.Visible = false
 					t.Page.Visible = false
@@ -604,22 +616,19 @@ function KazeUI:CreateWindow(config)
 					t.Label.Font = Enum.Font.Gotham
 				end
 			end
-			-- set selected look
 			TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = TAB_BG_ACTIVE}):Play()
 			leftIndicator.Visible = true
 			page.Visible = true
 			txt.TextColor3 = TAB_TEXT_COLOR
 			txt.Font = Enum.Font.GothamBold
-			-- ensure page is on top of other pages
 			page.Parent = self._Pages
 		end
 
-		-- hover animations (lightweight)
+		-- hover animations
 		local hoverTweenInfo = TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local hoverBG = Color3.fromRGB(28,28,31)
 		local leaveBG = TAB_BG
 		btn.MouseEnter:Connect(function()
-			-- only tween if not active (indicator hidden)
 			if not leftIndicator.Visible then
 				TweenService:Create(btn, hoverTweenInfo, {BackgroundColor3 = hoverBG}):Play()
 				txt.TextColor3 = Color3.fromRGB(220,220,220)
@@ -632,20 +641,18 @@ function KazeUI:CreateWindow(config)
 			end
 		end)
 
-		-- click to activate
 		btn.MouseButton1Click:Connect(activate)
 
-		-- auto-activate first tab
 		if #self._Tabs == 1 then
 			activate()
 		end
 
 		-- Section creation API for this tab
-		-- Usage: local section = Tab:Section("Title") -- returns { Frame = sectionFrame, Content = contentHolder, SetColor = fn }
-		-- Optional second arg: color (Color3) to override default blue header
+		-- Usage: local section = Tab:Section("Title") -- header title will also set the centered page title in blue by default
+		-- Optional second arg: color (Color3) to override default blue text color and header color
 		local function CreateSection(sectionTitle, colorOverride)
 			local headerColor = colorOverride or self._Stroke.Color or Color3.fromRGB(0,160,255)
-
+			-- Create section frame
 			local sectionFrame = Instance.new("Frame")
 			sectionFrame.Name = "Section_" .. tostring(sectionTitle or "Section")
 			sectionFrame.Size = UDim2.new(1, 0, 0, 120)
@@ -654,7 +661,7 @@ function KazeUI:CreateWindow(config)
 			sectionFrame.Parent = SectionsContainer
 			Instance.new("UICorner", sectionFrame).CornerRadius = UDim.new(0, 8)
 
-			-- Header
+			-- Header (small pill header inside section)
 			local header = Instance.new("Frame")
 			header.Name = "Header"
 			header.Size = UDim2.new(1, 0, 0, 34)
@@ -662,7 +669,6 @@ function KazeUI:CreateWindow(config)
 			header.BackgroundColor3 = headerColor
 			header.BorderSizePixel = 0
 			header.Parent = sectionFrame
-			-- round only top corners for header
 			local headerCorner = Instance.new("UICorner", header)
 			headerCorner.CornerRadius = UDim.new(0, 8)
 
@@ -672,7 +678,7 @@ function KazeUI:CreateWindow(config)
 			headerLabel.Position = UDim2.fromOffset(8, 0)
 			headerLabel.BackgroundTransparency = 1
 			headerLabel.Text = tostring(sectionTitle or "Section")
-			headerLabel.TextColor3 = Color3.fromRGB(245,245,245)
+			headerLabel.TextColor3 = Color3.fromRGB(245,245,245) -- keep inside-header text white for contrast
 			headerLabel.Font = Enum.Font.GothamBold
 			headerLabel.TextSize = 14
 			headerLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -681,67 +687,73 @@ function KazeUI:CreateWindow(config)
 			-- Content holder inside section
 			local contentHolder = Instance.new("Frame")
 			contentHolder.Name = "Content"
-			contentHolder.Size = UDim2.new(1, -12, 1, -44) -- leave space for header + small padding
+			contentHolder.Size = UDim2.new(1, -12, 1, -44)
 			contentHolder.Position = UDim2.fromOffset(6, 40)
 			contentHolder.BackgroundTransparency = 1
 			contentHolder.BorderSizePixel = 0
 			contentHolder.Parent = sectionFrame
 
-			-- Layout inside content holder for user elements
 			local contentLayout = Instance.new("UIListLayout")
 			contentLayout.Parent = contentHolder
 			contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
 			contentLayout.Padding = UDim.new(0, 8)
 
-			-- Provide a lightweight API for the section
+			-- also set/update the centered page header text in blue (or the override color)
+			if pageHeader then
+				pageHeader.Text = tostring(sectionTitle or "")
+				pageHeader.TextColor3 = headerColor
+				pageHeader.Visible = true
+			end
+
 			local sectionPublic = {
 				Frame = sectionFrame,
 				Content = contentHolder,
 				SetColor = function(newColor)
 					if typeof(newColor) == "Color3" then
 						header.BackgroundColor3 = newColor
+						if pageHeader then
+							pageHeader.TextColor3 = newColor
+						end
 					end
 				end,
 				SetTitle = function(newTitle)
 					headerLabel.Text = tostring(newTitle or "")
+					if pageHeader then
+						pageHeader.Text = tostring(newTitle or "")
+					end
 				end,
 				Destroy = function()
 					sectionFrame:Destroy()
 				end
 			}
 
-			-- Resize section height when content changes (automatic)
+			-- Resize section height when content changes
 			local function UpdateSectionSize()
 				local canvas = 0
-				-- calculate children content height
-				for i,child in ipairs(contentHolder:GetChildren()) do
-					if child:IsA("GuiObject") and child ~= contentLayout and child ~= sectionsLayout and child.Name ~= "UIListLayout" then
+				for _, child in ipairs(contentHolder:GetChildren()) do
+					if child:IsA("GuiObject") and child ~= contentLayout then
 						canvas = canvas + child.AbsoluteSize.Y + (contentLayout.Padding.Offset or 8)
 					end
 				end
-				-- minimum height for content
 				local minHeight = 60
 				local total = math.max(minHeight, canvas)
-				sectionFrame.Size = UDim2.new(1, 0, 0, 40 + total + 12) -- header (34) + content + padding
+				sectionFrame.Size = UDim2.new(1, 0, 0, 40 + total + 12)
 			end
 
-			-- Connect to content child's absolute size changed (best-effort)
 			contentHolder.ChildAdded:Connect(function()
-				wait() -- allow layout to run
+				wait()
 				UpdateSectionSize()
 			end)
 			contentHolder.ChildRemoved:Connect(function()
 				wait()
 				UpdateSectionSize()
 			end)
-
-			-- initial size update
 			UpdateSectionSize()
 
 			return sectionPublic
 		end
 
-		-- public API for this tab (returned to user)
+		-- public API for this tab
 		local public = {
 			Button = btn,
 			Page = page,
