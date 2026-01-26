@@ -1,7 +1,6 @@
 --// Kaze UI Base
 --// Window System (PC + Mobile)
---// Updated: shadow rounded corner fix; dividers matching outline (neon stroke thickness/color)
---// Added: Tab system with CreateTab(name, iconId) - returns { Button, Page, Activate }
+--// Updated: Tab improvements — rectangular tabs, stronger text contrast, hover animations, small optimizations
 
 local KazeUI = {}
 KazeUI.__index = KazeUI
@@ -467,6 +466,7 @@ function KazeUI:CreateWindow(config)
 	TabsList.CanvasSize = UDim2.new(0, 0, 0, 0)
 	TabsList.ScrollBarThickness = 6
 	TabsList.VerticalScrollBarInset = Enum.ScrollBarInset.Always
+	-- keep AutomaticCanvasSize for dynamic sizing and fewer manual updates
 	TabsList.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 	local tabsLayout = Instance.new("UIListLayout")
@@ -476,6 +476,14 @@ function KazeUI:CreateWindow(config)
 
 	-- container to hold tab data
 	local createdTabs = {}
+
+	-- small constants for tab appearance (easy to tweak)
+	local TAB_BUTTON_HEIGHT = 44      -- reduced height to make tabs more rectangular (less "taba")
+	local TAB_CORNER_RADIUS = 6       -- smaller corner radius for a more rectangular look
+	local TAB_BG = Color3.fromRGB(24,24,28)
+	local TAB_BG_ACTIVE = Color3.fromRGB(32,32,36)
+	local TAB_TEXT_COLOR = Color3.fromRGB(240,240,240)
+	local TAB_TEXT_INACTIVE = Color3.fromRGB(200,200,200)
 
 	-- returned wrapper object (so caller can call :CreateTab)
 	local Win = {
@@ -498,13 +506,13 @@ function KazeUI:CreateWindow(config)
 		-- Button
 		local btn = Instance.new("TextButton")
 		btn.Name = "TabButton_" .. name
-		btn.Size = UDim2.new(1, -24, 0, 56)
-		btn.BackgroundColor3 = Color3.fromRGB(22,22,26)
+		btn.Size = UDim2.new(1, -24, 0, TAB_BUTTON_HEIGHT)
+		btn.BackgroundColor3 = TAB_BG
 		btn.BorderSizePixel = 0
 		btn.Text = ""
-		btn.AutoButtonColor = true
+		btn.AutoButtonColor = false -- we'll handle hover/pressed visuals
 		btn.Parent = TabsList
-		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, TAB_CORNER_RADIUS)
 
 		-- left indicator (cyan thin bar)
 		local leftIndicator = Instance.new("Frame")
@@ -517,26 +525,26 @@ function KazeUI:CreateWindow(config)
 		leftIndicator.Parent = btn
 		Instance.new("UICorner", leftIndicator).CornerRadius = UDim.new(0, 6)
 
-		-- Icon
+		-- Icon (left, vertically centered)
 		local iconLabel = Instance.new("ImageLabel")
 		iconLabel.Name = "Icon"
-		iconLabel.Size = UDim2.fromOffset(36, 36)
-		iconLabel.Position = UDim2.fromOffset(12, 10)
+		iconLabel.Size = UDim2.fromOffset(32, 32)
+		iconLabel.Position = UDim2.new(0, 12, 0.5, -16)
 		iconLabel.BackgroundTransparency = 1
 		iconLabel.Image = formattedIcon
 		iconLabel.Parent = btn
 		Instance.new("UICorner", iconLabel).CornerRadius = UDim.new(1, 0)
 
-		-- Text
+		-- Text (clearer, bolder)
 		local txt = Instance.new("TextLabel")
 		txt.Name = "Label"
 		txt.Size = UDim2.new(1, -64, 1, 0)
 		txt.Position = UDim2.fromOffset(56, 0)
 		txt.BackgroundTransparency = 1
 		txt.Text = name
-		txt.TextColor3 = Color3.fromRGB(200,200,200)
+		txt.TextColor3 = TAB_TEXT_INACTIVE
 		txt.Font = Enum.Font.Gotham
-		txt.TextSize = 14
+		txt.TextSize = 15
 		txt.TextXAlignment = Enum.TextXAlignment.Left
 		txt.Parent = btn
 
@@ -563,17 +571,42 @@ function KazeUI:CreateWindow(config)
 		-- activation function
 		local function activate()
 			for _, t in ipairs(self._Tabs) do
-				if t.Button and t.Indicator and t.Page then
-					t.Button.BackgroundColor3 = Color3.fromRGB(22,22,26)
+				if t.Button and t.Indicator and t.Page and t.Label then
+					-- reset visuals
+					TweenService:Create(t.Button, TweenInfo.new(0.12), {BackgroundColor3 = TAB_BG}):Play()
 					t.Indicator.Visible = false
 					t.Page.Visible = false
+					t.Label.TextColor3 = TAB_TEXT_INACTIVE
+					t.Label.Font = Enum.Font.Gotham
 				end
 			end
 			-- set selected look
-			btn.BackgroundColor3 = Color3.fromRGB(30,30,34)
+			TweenService:Create(btn, TweenInfo.new(0.12), {BackgroundColor3 = TAB_BG_ACTIVE}):Play()
 			leftIndicator.Visible = true
 			page.Visible = true
+			txt.TextColor3 = TAB_TEXT_COLOR
+			txt.Font = Enum.Font.GothamBold
+			-- ensure page is on top of other pages
+			page.Parent = self._Pages
 		end
+
+		-- hover animations (lightweight)
+		local hoverTweenInfo = TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		local hoverBG = Color3.fromRGB(28,28,31)
+		local leaveBG = TAB_BG
+		btn.MouseEnter:Connect(function()
+			-- only tween if not active (indicator hidden)
+			if not leftIndicator.Visible then
+				TweenService:Create(btn, hoverTweenInfo, {BackgroundColor3 = hoverBG}):Play()
+				txt.TextColor3 = Color3.fromRGB(220,220,220)
+			end
+		end)
+		btn.MouseLeave:Connect(function()
+			if not leftIndicator.Visible then
+				TweenService:Create(btn, hoverTweenInfo, {BackgroundColor3 = leaveBG}):Play()
+				txt.TextColor3 = TAB_TEXT_INACTIVE
+			end
+		end)
 
 		-- click to activate
 		btn.MouseButton1Click:Connect(activate)
