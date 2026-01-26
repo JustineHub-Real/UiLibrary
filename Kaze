@@ -90,9 +90,10 @@ local function MakeDraggable(dragPart, targetPart)
 	end)
 end
 
--- helper for neon tween loops
+-- helper for neon tween loops (safe: returns early if target nil)
 local function StartNeonLoop(target)
-	-- Accepts UIStroke or any GuiObject with BackgroundColor3
+	if not target then return end
+
 	spawn(function()
 		while target and target.Parent do
 			local propName
@@ -111,7 +112,7 @@ local function StartNeonLoop(target)
 			if success and tween then
 				tween:Play()
 			end
-			-- tween repeats indefinitely, so break out of the manual loop
+			-- tween created with infinite repeats; break out of loop
 			break
 		end
 	end)
@@ -659,6 +660,7 @@ function KazeUI:CreateWindow(config)
 			Button = btn,
 			Page = page,
 			_PageContent = pageContent,
+			_Stroke = self._Stroke,    -- expose window stroke so Paragraph and glow can access it safely
 			Activate = activate,
 			SetIcon = function(newIcon)
 				iconLabel.Image = FormatImage(newIcon)
@@ -678,7 +680,7 @@ function KazeUI:CreateWindow(config)
 			sectionFrame.Size = UDim2.new(1, -24, 0, 64) -- full width minus some padding, 64px tall for header area
 			sectionFrame.BackgroundTransparency = 1
 			sectionFrame.BorderSizePixel = 0
-			sectionFrame.Parent = pageContent
+			sectionFrame.Parent = self._PageContent
 
 			-- Title label centered at the top of the section
 			local titleLabel = Instance.new("TextLabel")
@@ -760,7 +762,12 @@ function KazeUI:CreateWindow(config)
 			-- slightly larger so glow surrounds the paragraph
 			glow.Size = UDim2.new(1, -24, 0, totalHeight + 10)
 			glow.Position = UDim2.fromOffset(12, 0)
-			glow.BackgroundColor3 = self._Stroke.Color
+			-- safe read of stroke color
+			if self._Stroke and self._Stroke.Color then
+				glow.BackgroundColor3 = self._Stroke.Color
+			else
+				glow.BackgroundColor3 = Color3.fromRGB(0,160,255)
+			end
 			glow.BackgroundTransparency = 0.92 -- very faint
 			glow.BorderSizePixel = 0
 			glow.ZIndex = 1
@@ -783,7 +790,11 @@ function KazeUI:CreateWindow(config)
 			-- neon outline stroke (animated via StartNeonLoop)
 			local paraStroke = Instance.new("UIStroke")
 			paraStroke.Parent = paraFrame
-			paraStroke.Color = self._Stroke.Color
+			if self._Stroke and self._Stroke.Color then
+				paraStroke.Color = self._Stroke.Color
+			else
+				paraStroke.Color = Color3.fromRGB(0,160,255)
+			end
 			paraStroke.Thickness = 2
 			paraStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 			StartNeonLoop(paraStroke)
