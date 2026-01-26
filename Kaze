@@ -1,7 +1,6 @@
--- Kaze UI Base
--- Window System (PC + Mobile)
--- Updated: fixes for scroll-to-tab, mobile single-finger scrolling on tab buttons,
--- backward-compatible CreateTab signature, neon loop, layout timing, minor optimizations
+--// Kaze UI Base
+--// Window System (PC + Mobile)
+--// Updated: shadow rounded corner fix; dividers matching outline (neon stroke thickness/color)
 
 local KazeUI = {}
 KazeUI.__index = KazeUI
@@ -45,12 +44,11 @@ end
 
 --// Drag Function (works with Mouse and Touch)
 local function MakeDraggable(dragPart, targetPart)
-	if not dragPart or not targetPart then return end
 	local dragging = false
 	local dragInput, dragStart, startPos
 
 	local function update(input)
-		if not dragStart or not startPos or not input then return end
+		if not dragStart or not startPos then return end
 		local delta = input.Position - dragStart
 		targetPart.Position = UDim2.new(
 			startPos.X.Scale, startPos.X.Offset + delta.X,
@@ -85,16 +83,15 @@ local function MakeDraggable(dragPart, targetPart)
 	end)
 end
 
--- helper for neon tween loops (idempotent, avoids duplicate tweens)
+-- helper for neon tween loops
 local function StartNeonLoop(targetStroke)
-	if not targetStroke then return end
-	if targetStroke:GetAttribute("NeonTweenCreated") then return end
-	targetStroke:SetAttribute("NeonTweenCreated", true)
-	local tweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
-	local ok, t = pcall(function()
-		return TweenService:Create(targetStroke, tweenInfo, {Color = Color3.fromRGB(0, 255, 255)})
+	spawn(function()
+		while targetStroke and targetStroke.Parent do
+			local t = TweenService:Create(targetStroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {Color = Color3.fromRGB(0, 255, 255)})
+			t:Play()
+			break
+		end
 	end)
-	if ok and t then t:Play() end
 end
 
 --// CREATE WINDOW
@@ -185,6 +182,7 @@ function KazeUI:CreateWindow(config)
 	-- TopBar bottom cyan divider (thin) using stroke so it matches outline thickness visually
 	local TopDivider = Instance.new("Frame")
 	TopDivider.Name = "TopDivider"
+	-- small filled frame (thin) — visual thickness controlled by stroke to match WindowStroke
 	TopDivider.Size = UDim2.new(1, 0, 0, 2)
 	TopDivider.Position = UDim2.new(0, 0, 1, -2)
 	TopDivider.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
@@ -264,6 +262,7 @@ function KazeUI:CreateWindow(config)
 	MiniStroke.Parent = MiniButton
 	StartNeonLoop(MiniStroke)
 
+	MakeDraggable(TopBar, Window)
 	MakeDraggable(MiniButton, MiniButton)
 
 	local function minimizeWindow()
@@ -445,251 +444,11 @@ function KazeUI:CreateWindow(config)
 	vertDivStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	StartNeonLoop(vertDivStroke)
 
-	-- Tabs container (right side content area)
-	local TabsContainer = Instance.new("Frame")
-	TabsContainer.Name = "TabsContainer"
-	TabsContainer.Size = UDim2.new(1, -182, 1, 0)
-	TabsContainer.Position = UDim2.new(0, 182, 0, 0)
-	TabsContainer.BackgroundTransparency = 1
-	TabsContainer.Parent = Content
-
-	-- Scrolling tabs inside the sidebar (vertical scroll)
-	local TabsScroller = Instance.new("ScrollingFrame")
-	TabsScroller.Name = "TabsScroller"
-	TabsScroller.Size = UDim2.new(1, -16, 1, -16)
-	TabsScroller.Position = UDim2.new(0, 8, 0, 8)
-	TabsScroller.CanvasSize = UDim2.new(0, 0, 0, 0)
-	TabsScroller.ScrollBarThickness = 6
-	TabsScroller.BackgroundTransparency = 1
-	TabsScroller.Parent = SideBar
-	TabsScroller.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
-	TabsScroller.ScrollingEnabled = true
-
-	local tabsLayout = Instance.new("UIListLayout")
-	tabsLayout.Parent = TabsScroller
-	tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	tabsLayout.Padding = UDim.new(0, 8)
-
-	local tabsPadding = Instance.new("UIPadding")
-	tabsPadding.PaddingTop = UDim.new(0, 8)
-	tabsPadding.PaddingLeft = UDim.new(0, 8)
-	tabsPadding.PaddingRight = UDim.new(0, 8)
-	tabsPadding.PaddingBottom = UDim.new(0, 8)
-	tabsPadding.Parent = TabsScroller
-
-	-- Auto adjust canvas size when tabs added/removed
-	tabsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-		local totalY = tabsLayout.AbsoluteContentSize.Y + 12
-		TabsScroller.CanvasSize = UDim2.new(0, 0, 0, totalY)
-	end)
-
-	-- Table to track tabs
-	local createdTabs = {}
-	local selectedTabButton = nil
-
-	-- API object to return
-	local WindowAPI = {
-		Window = Window,
-		Content = Content,
-		Icon = Avatar,
-		MiniButton = MiniButton,
-		SideBar = SideBar
-	}
-
-	-- CreateTab method: accepts either
-	-- 1) WindowAPI:CreateTab({ Title = "Main", Icon = "603..." })
-	-- or
-	-- 2) WindowAPI:CreateTab("Main", "603...")
-	function WindowAPI:CreateTab(tabConfig, maybeIcon)
-		-- backward compatibility: accept (title, icon)
-		if typeof(tabConfig) == "string" then
-			local title = tabConfig
-			tabConfig = { Title = title, Icon = maybeIcon }
-		end
-		tabConfig = tabConfig or {}
-		local tabTitle = tabConfig.Title or "Tab"
-		local tabIcon = FormatImage(tabConfig.Icon or "")
-
-		-- Tab button
-		local tabBtn = Instance.new("TextButton")
-		tabBtn.Name = "TabButton_" .. tabTitle
-		tabBtn.AutoButtonColor = false -- we handle visual state manually
-		tabBtn.Size = UDim2.new(1, 0, 0, 44)
-		tabBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
-		tabBtn.BorderSizePixel = 0
-		tabBtn.Text = ""
-		tabBtn.LayoutOrder = #createdTabs + 1
-		tabBtn.Parent = TabsScroller
-		Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 8)
-
-		-- Icon
-		local btnIcon = Instance.new("ImageLabel")
-		btnIcon.Name = "Icon"
-		btnIcon.Size = UDim2.fromOffset(28, 28)
-		btnIcon.Position = UDim2.fromOffset(8, 8)
-		btnIcon.BackgroundTransparency = 1
-		btnIcon.Image = tabIcon
-		btnIcon.Parent = tabBtn
-		Instance.new("UICorner", btnIcon).CornerRadius = UDim.new(1, 0)
-
-		-- Title
-		local btnLabel = Instance.new("TextLabel")
-		btnLabel.Name = "Label"
-		btnLabel.Size = UDim2.new(1, -44, 1, 0)
-		btnLabel.Position = UDim2.fromOffset(44, 0)
-		btnLabel.BackgroundTransparency = 1
-		btnLabel.Text = tabTitle
-		btnLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-		btnLabel.Font = Enum.Font.Gotham
-		btnLabel.TextSize = 14
-		btnLabel.TextXAlignment = Enum.TextXAlignment.Left
-		btnLabel.Parent = tabBtn
-
-		-- Selection highlight (left edge)
-		local selectBar = Instance.new("Frame")
-		selectBar.Name = "SelectBar"
-		selectBar.Size = UDim2.new(0, 4, 1, 0)
-		selectBar.Position = UDim2.new(0, 0, 0, 0)
-		selectBar.BackgroundColor3 = Color3.fromRGB(0, 160, 255)
-		selectBar.BorderSizePixel = 0
-		selectBar.Visible = false
-		selectBar.Parent = tabBtn
-		Instance.new("UICorner", selectBar).CornerRadius = UDim.new(0, 4)
-
-		-- Tab content
-		local tabContent = Instance.new("Frame")
-		tabContent.Name = "TabContent"
-		tabContent.Size = UDim2.new(1, 0, 1, 0)
-		tabContent.Position = UDim2.new(0, 0, 0, 0)
-		tabContent.BackgroundTransparency = 1
-		tabContent.Visible = false
-		tabContent.Parent = TabsContainer
-
-		-- convenience content holder where users can Parent UI elements
-		local innerContent = Instance.new("Frame")
-		innerContent.Name = "Inner"
-		innerContent.Size = UDim2.new(1, 0, 1, 0)
-		innerContent.BackgroundTransparency = 1
-		innerContent.Parent = tabContent
-
-		-- Click behavior: select this tab (no moving/reordering)
-		local function selectTab()
-			-- hide all tab contents and un-highlight buttons
-			for _, t in ipairs(createdTabs) do
-				if t.Button and t.Button:FindFirstChild("SelectBar") then
-					t.Button.SelectBar.Visible = false
-					t.Button.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
-				end
-				if t.Content then
-					t.Content.Visible = false
-				end
-			end
-
-			-- show this tab
-			tabContent.Visible = true
-			selectBar.Visible = true
-			tabBtn.BackgroundColor3 = Color3.fromRGB(34, 34, 38)
-			selectedTabButton = tabBtn
-
-			-- ensure button is visible in scroller (scroll to show)
-			-- Defer so AbsolutePosition/AbsoluteSize are valid after layout
-			task.defer(function()
-				if not TabsScroller or not tabBtn or not tabBtn.Parent then return end
-
-				local scrollerH = TabsScroller.AbsoluteSize.Y or 0
-				local canvasTotal = 0
-				local ok = pcall(function()
-					canvasTotal = TabsScroller.CanvasSize.Y.Offset
-				end)
-				if not ok then canvasTotal = 0 end
-
-				-- child Y in canvas coordinates:
-				local childCanvasY = (tabBtn.AbsolutePosition.Y - TabsScroller.AbsolutePosition.Y) + TabsScroller.CanvasPosition.Y
-
-				local currentTop = TabsScroller.CanvasPosition.Y
-				local currentBottom = currentTop + scrollerH
-				local margin = 8
-
-				if childCanvasY < currentTop then
-					local target = math.max(0, childCanvasY - margin)
-					TabsScroller.CanvasPosition = Vector2.new(0, target)
-				elseif (childCanvasY + tabBtn.AbsoluteSize.Y) > currentBottom then
-					local target = childCanvasY + tabBtn.AbsoluteSize.Y - scrollerH + margin
-					if canvasTotal > scrollerH then
-						target = math.clamp(target, 0, math.max(0, canvasTotal - scrollerH))
-					else
-						target = math.max(0, target)
-					end
-					TabsScroller.CanvasPosition = Vector2.new(0, target)
-				end
-			end)
-		end
-
-		-- Mouse click still selects
-		tabBtn.MouseButton1Click:Connect(function()
-			selectTab()
-		end)
-
-		-- Mobile touch: implement single-finger drag-to-scroll when touching buttons
-		tabBtn.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.Touch then
-				local activeTouch = input
-				local startPos = input.Position
-				local startCanvasY = TabsScroller.CanvasPosition.Y
-				local moved = false
-
-				-- listen for touch moves; make sure we only follow this touch object
-				local connMoved
-				connMoved = UIS.InputChanged:Connect(function(i)
-					if i == activeTouch and i.UserInputType == Enum.UserInputType.Touch then
-						local deltaY = i.Position.Y - startPos.Y
-						local canvasTotal = 0
-						pcall(function() canvasTotal = TabsScroller.CanvasSize.Y.Offset end)
-						local newY = math.clamp(startCanvasY - deltaY, 0, math.max(0, canvasTotal - (TabsScroller.AbsoluteSize.Y or 0)))
-						TabsScroller.CanvasPosition = Vector2.new(0, newY)
-						if math.abs(deltaY) > 6 then moved = true end
-					end
-				end)
-
-				-- when this touch ends: if it didn't move much => treat as tap (select)
-				input.Changed:Connect(function()
-					if input.UserInputState == Enum.UserInputState.End then
-						if connMoved then
-							connMoved:Disconnect()
-						end
-						if not moved then
-							-- short defer so selection logic runs after UI settles
-							task.defer(function()
-								selectTab()
-							end)
-						end
-					end
-				end)
-			end
-		end)
-
-		local tabData = {Button = tabBtn, Content = tabContent}
-		table.insert(createdTabs, tabData)
-
-		-- if this is the first tab, select it (deferred so layout finishes)
-		if #createdTabs == 1 then
-			task.defer(selectTab)
-		end
-
-		-- Return API for this tab so user can modify content
-		return {
-			Button = tabBtn,
-			Content = tabContent,
-			Inner = innerContent,
-			Select = selectTab
-		}
-	end
-
 	if typeof(Callback) == "function" then
 		pcall(Callback)
 	end
 
-	return WindowAPI
+	return {Window = Window, Content = Content, Icon = Avatar, MiniButton = MiniButton, SideBar = SideBar}
 end
 
 return KazeUI
