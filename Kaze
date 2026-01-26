@@ -1,5 +1,5 @@
--- Kaze UI Library (Fixed: Non-scrollable tabs + Paragraph works without Section + Added Compact Glowing Button)
--- Full drop-in replacement.
+-- Kaze UI Library (Fixed: Scrollable Tabs + Multi-line Button Descriptions)
+-- Drop-in replacement. Paste this entire script.
 local KazeUI = {}
 KazeUI.__index = KazeUI
 
@@ -203,21 +203,17 @@ local function CreateParagraph(parentFrame, strokeColor, title, body)
 				if parentFrame and parentFrame.AbsoluteSize and parentFrame.AbsoluteSize.X > 0 then
 					w = parentFrame.AbsoluteSize.X * 0.95
 				end
-
 				local newTitleH = 0
 				if title ~= "" then
 					local ts2 = TextService:GetTextSize(title, 16, Enum.Font.GothamBold, Vector2.new(w - 32, 1000))
 					newTitleH = math.max(20, math.ceil(ts2.Y))
 				end
-
 				local newBodySize = TextService:GetTextSize(newText, 14, Enum.Font.Gotham, Vector2.new(w - 32, 2000))
 				local newBodyH = math.ceil(newBodySize.Y)
 				local newTotal = 10 + newTitleH + 6 + newBodyH + 10
-
 				paraFrame.Size = UDim2.new(0.95, 0, 0, newTotal)
 				glow.Size = UDim2.new(0.96, 0, 0, newTotal + 10)
 				wrapper.Size = UDim2.new(1, 0, 0, newTotal + 12)
-
 				if paraFrame:FindFirstChild("ParagraphTitle") then
 					paraFrame.ParagraphTitle.Size = UDim2.new(1, 0, 0, newTitleH)
 				end
@@ -228,7 +224,7 @@ local function CreateParagraph(parentFrame, strokeColor, title, body)
 	return paraAPI
 end
 
--- NEW: CreateButton function (compact, glowing, fits your UI)
+-- NEW: CreateButton function (compact, glowing, supports multi-line description)
 local function CreateButton(parent, config)
 	config = config or {}
 	local title = config.Title or "Execute"
@@ -237,24 +233,32 @@ local function CreateButton(parent, config)
 	local icon = config.Icon or ""
 
 	local buttonFrame = Instance.new("Frame")
-	buttonFrame.Size = UDim2.new(0.95, 0, 0, 50)
-	buttonFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
-	buttonFrame.BorderSizePixel = 0
+	buttonFrame.Size = UDim2.new(0.95, 0, 0, 0) -- Auto height
+	buttonFrame.BackgroundTransparency = 1
 	buttonFrame.Parent = parent
-	Instance.new("UICorner", buttonFrame).CornerRadius = UDim.new(0, 8)
+	buttonFrame.AutomaticSize = Enum.AutomaticSize.Y
+
+	local visualBtn = Instance.new("Frame")
+	visualBtn.Size = UDim2.new(1, 0, 0, 0)
+	visualBtn.BackgroundColor3 = Color3.fromRGB(24,24,28)
+	visualBtn.BorderSizePixel = 0
+	visualBtn.Parent = buttonFrame
+	visualBtn.AutomaticSize = Enum.AutomaticSize.Y
+	Instance.new("UICorner", visualBtn).CornerRadius = UDim.new(0, 8)
 
 	local btnStroke = Instance.new("UIStroke")
 	btnStroke.Color = Color3.fromRGB(0,160,255)
 	btnStroke.Thickness = 2
 	btnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	btnStroke.Parent = buttonFrame
+	btnStroke.Parent = visualBtn
 	StartNeonLoop(btnStroke)
 
 	local content = Instance.new("Frame")
 	content.Size = UDim2.new(1, -16, 1, -16)
 	content.Position = UDim2.fromOffset(8,8)
 	content.BackgroundTransparency = 1
-	content.Parent = buttonFrame
+	content.Parent = visualBtn
+	content.AutomaticSize = Enum.AutomaticSize.Y
 
 	local iconLabel = nil
 	if icon ~= "" then
@@ -282,13 +286,15 @@ local function CreateButton(parent, config)
 
 	local descLabel = Instance.new("TextLabel")
 	descLabel.BackgroundTransparency = 1
-	descLabel.Size = UDim2.new(1, -textOffset - 20, 0, 16)
+	descLabel.Size = UDim2.new(1, -textOffset - 20, 0, 0)
 	descLabel.Position = UDim2.fromOffset(textOffset, 22)
 	descLabel.Text = description
 	descLabel.TextColor3 = Color3.fromRGB(180,180,180)
 	descLabel.Font = Enum.Font.Gotham
 	descLabel.TextSize = 13
 	descLabel.TextXAlignment = Enum.TextXAlignment.Left
+	descLabel.TextWrapped = true
+	descLabel.AutomaticSize = Enum.AutomaticSize.Y
 	descLabel.Visible = description ~= ""
 	descLabel.Parent = content
 
@@ -303,22 +309,22 @@ local function CreateButton(parent, config)
 	arrow.ZIndex = 2
 	arrow.Parent = content
 
-	-- Invisible clickable area covering whole button
+	-- Invisible clickable area
 	local clickArea = Instance.new("TextButton")
 	clickArea.Size = UDim2.new(1, 0, 1, 0)
 	clickArea.BackgroundTransparency = 1
 	clickArea.Text = ""
-	clickArea.Parent = buttonFrame
+	clickArea.Parent = visualBtn
 	clickArea.MouseButton1Click:Connect(callback)
 
 	-- Hover effect
 	local hoverColor = Color3.fromRGB(28,28,32)
 	local defaultColor = Color3.fromRGB(24,24,28)
 	clickArea.MouseEnter:Connect(function()
-		TweenService:Create(buttonFrame, TweenInfo.new(0.1), {BackgroundColor3 = hoverColor}):Play()
+		TweenService:Create(visualBtn, TweenInfo.new(0.1), {BackgroundColor3 = hoverColor}):Play()
 	end)
 	clickArea.MouseLeave:Connect(function()
-		TweenService:Create(buttonFrame, TweenInfo.new(0.1), {BackgroundColor3 = defaultColor}):Play()
+		TweenService:Create(visualBtn, TweenInfo.new(0.1), {BackgroundColor3 = defaultColor}):Play()
 	end)
 
 	return {
@@ -535,7 +541,6 @@ function KazeUI:CreateWindow(config)
 		BtnYellow.Active = false
 		BtnGreen.Active = false
 		BtnRed.Active = false
-
 		local Overlay = Instance.new("Frame")
 		Overlay.Size = UDim2.new(1,0,1,0)
 		Overlay.BackgroundColor3 = Color3.fromRGB(0,0,0)
@@ -667,13 +672,23 @@ function KazeUI:CreateWindow(config)
 	Pages.Parent = Content
 	Instance.new("UICorner", Pages).CornerRadius = UDim.new(0,12)
 
-	-- Tabs list — NOW A REGULAR FRAME (NO SCROLLING)
+	-- Tabs list — NOW SCROLLABLE!
+	local TabsScroller = Instance.new("ScrollingFrame")
+	TabsScroller.Name = "TabsScroller"
+	TabsScroller.Parent = SideBar
+	TabsScroller.Position = UDim2.fromOffset(8,8)
+	TabsScroller.Size = UDim2.new(1, -16, 1, -16)
+	TabsScroller.BackgroundTransparency = 1
+	TabsScroller.ScrollBarThickness = 6
+	TabsScroller.CanvasSize = UDim2.new(0, 0, 0, 0)
+	TabsScroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	TabsScroller.ScrollBarImageColor3 = Color3.fromRGB(40,40,45)
+
 	local TabsList = Instance.new("Frame")
 	TabsList.Name = "TabsList"
-	TabsList.Parent = SideBar
-	TabsList.Position = UDim2.fromOffset(8,8)
-	TabsList.Size = UDim2.new(1, -16, 1, -16)
 	TabsList.BackgroundTransparency = 1
+	TabsList.Size = UDim2.new(1, 0, 0, 0)
+	TabsList.Parent = TabsScroller
 	TabsList.AutomaticSize = Enum.AutomaticSize.Y
 
 	local tabsLayout = Instance.new("UIListLayout", TabsList)
@@ -803,21 +818,18 @@ function KazeUI:CreateWindow(config)
 		local hoverTweenInfo = TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local hoverBG = Color3.fromRGB(28,28,31)
 		local leaveBG = TAB_BG
-
 		btn.MouseEnter:Connect(function()
 			if not leftIndicator.Visible then
 				TweenService:Create(btn, hoverTweenInfo, { BackgroundColor3 = hoverBG }):Play()
 				txt.TextColor3 = Color3.fromRGB(220,220,220)
 			end
 		end)
-
 		btn.MouseLeave:Connect(function()
 			if not leftIndicator.Visible then
 				TweenService:Create(btn, hoverTweenInfo, { BackgroundColor3 = leaveBG }):Play()
 				txt.TextColor3 = TAB_TEXT_INACTIVE
 			end
 		end)
-
 		btn.MouseButton1Click:Connect(activate)
 
 		if #self._Tabs == 1 then activate() end
@@ -844,7 +856,6 @@ function KazeUI:CreateWindow(config)
 		function public:SetIcon(newIcon)
 			iconLabel.Image = FormatImage(newIcon)
 		end
-
 		function public:SetText(newText)
 			txt.Text = tostring(newText or "")
 		end
