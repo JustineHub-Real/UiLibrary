@@ -1,4 +1,4 @@
--- Kaze UI Library (Fixed: Non-scrollable tabs + Paragraph works without Section)
+-- Kaze UI Library (Fixed: Non-scrollable tabs + Paragraph works without Section + Added Compact Glowing Button)
 -- Full drop-in replacement.
 local KazeUI = {}
 KazeUI.__index = KazeUI
@@ -203,17 +203,21 @@ local function CreateParagraph(parentFrame, strokeColor, title, body)
 				if parentFrame and parentFrame.AbsoluteSize and parentFrame.AbsoluteSize.X > 0 then
 					w = parentFrame.AbsoluteSize.X * 0.95
 				end
+
 				local newTitleH = 0
 				if title ~= "" then
 					local ts2 = TextService:GetTextSize(title, 16, Enum.Font.GothamBold, Vector2.new(w - 32, 1000))
 					newTitleH = math.max(20, math.ceil(ts2.Y))
 				end
+
 				local newBodySize = TextService:GetTextSize(newText, 14, Enum.Font.Gotham, Vector2.new(w - 32, 2000))
 				local newBodyH = math.ceil(newBodySize.Y)
 				local newTotal = 10 + newTitleH + 6 + newBodyH + 10
+
 				paraFrame.Size = UDim2.new(0.95, 0, 0, newTotal)
 				glow.Size = UDim2.new(0.96, 0, 0, newTotal + 10)
 				wrapper.Size = UDim2.new(1, 0, 0, newTotal + 12)
+
 				if paraFrame:FindFirstChild("ParagraphTitle") then
 					paraFrame.ParagraphTitle.Size = UDim2.new(1, 0, 0, newTitleH)
 				end
@@ -222,6 +226,113 @@ local function CreateParagraph(parentFrame, strokeColor, title, body)
 		end,
 	}
 	return paraAPI
+end
+
+-- NEW: CreateButton function (compact, glowing, fits your UI)
+local function CreateButton(parent, config)
+	config = config or {}
+	local title = config.Title or "Execute"
+	local description = config.Description or ""
+	local callback = config.Callback or function() end
+	local icon = config.Icon or ""
+
+	local buttonFrame = Instance.new("Frame")
+	buttonFrame.Size = UDim2.new(0.95, 0, 0, 50)
+	buttonFrame.BackgroundColor3 = Color3.fromRGB(24,24,28)
+	buttonFrame.BorderSizePixel = 0
+	buttonFrame.Parent = parent
+	Instance.new("UICorner", buttonFrame).CornerRadius = UDim.new(0, 8)
+
+	local btnStroke = Instance.new("UIStroke")
+	btnStroke.Color = Color3.fromRGB(0,160,255)
+	btnStroke.Thickness = 2
+	btnStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	btnStroke.Parent = buttonFrame
+	StartNeonLoop(btnStroke)
+
+	local content = Instance.new("Frame")
+	content.Size = UDim2.new(1, -16, 1, -16)
+	content.Position = UDim2.fromOffset(8,8)
+	content.BackgroundTransparency = 1
+	content.Parent = buttonFrame
+
+	local iconLabel = nil
+	if icon ~= "" then
+		iconLabel = Instance.new("ImageLabel")
+		iconLabel.Image = FormatImage(icon)
+		iconLabel.Size = UDim2.fromOffset(24,24)
+		iconLabel.Position = UDim2.fromOffset(0, 0)
+		iconLabel.BackgroundTransparency = 1
+		iconLabel.Parent = content
+		Instance.new("UICorner", iconLabel).CornerRadius = UDim.new(0, 4)
+	end
+
+	local textOffset = iconLabel and 32 or 0
+
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Size = UDim2.new(1, -textOffset - 20, 0, 20)
+	titleLabel.Position = UDim2.fromOffset(textOffset, 0)
+	titleLabel.Text = title
+	titleLabel.TextColor3 = Color3.fromRGB(255,255,255)
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 15
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.Parent = content
+
+	local descLabel = Instance.new("TextLabel")
+	descLabel.BackgroundTransparency = 1
+	descLabel.Size = UDim2.new(1, -textOffset - 20, 0, 16)
+	descLabel.Position = UDim2.fromOffset(textOffset, 22)
+	descLabel.Text = description
+	descLabel.TextColor3 = Color3.fromRGB(180,180,180)
+	descLabel.Font = Enum.Font.Gotham
+	descLabel.TextSize = 13
+	descLabel.TextXAlignment = Enum.TextXAlignment.Left
+	descLabel.Visible = description ~= ""
+	descLabel.Parent = content
+
+	local arrow = Instance.new("TextLabel")
+	arrow.BackgroundTransparency = 1
+	arrow.Size = UDim2.fromOffset(16, 16)
+	arrow.Position = UDim2.new(1, -20, 0.5, -8)
+	arrow.Text = ">"
+	arrow.TextColor3 = Color3.fromRGB(0,200,255)
+	arrow.Font = Enum.Font.GothamBold
+	arrow.TextSize = 18
+	arrow.ZIndex = 2
+	arrow.Parent = content
+
+	-- Invisible clickable area covering whole button
+	local clickArea = Instance.new("TextButton")
+	clickArea.Size = UDim2.new(1, 0, 1, 0)
+	clickArea.BackgroundTransparency = 1
+	clickArea.Text = ""
+	clickArea.Parent = buttonFrame
+	clickArea.MouseButton1Click:Connect(callback)
+
+	-- Hover effect
+	local hoverColor = Color3.fromRGB(28,28,32)
+	local defaultColor = Color3.fromRGB(24,24,28)
+	clickArea.MouseEnter:Connect(function()
+		TweenService:Create(buttonFrame, TweenInfo.new(0.1), {BackgroundColor3 = hoverColor}):Play()
+	end)
+	clickArea.MouseLeave:Connect(function()
+		TweenService:Create(buttonFrame, TweenInfo.new(0.1), {BackgroundColor3 = defaultColor}):Play()
+	end)
+
+	return {
+		Frame = buttonFrame,
+		Title = titleLabel,
+		Description = descLabel,
+		SetTitle = function(self, t)
+			titleLabel.Text = tostring(t)
+		end,
+		SetDescription = function(self, d)
+			descLabel.Text = tostring(d)
+			descLabel.Visible = d ~= ""
+		end
+	}
 end
 
 -- CreateWindow
@@ -597,6 +708,7 @@ function KazeUI:CreateWindow(config)
 	function Win:CreateTab(name, iconId)
 		name = tostring(name or "Tab")
 		local formattedIcon = FormatImage(iconId or "")
+
 		local btn = Instance.new("TextButton")
 		btn.Name = "TabButton_" .. name
 		btn.Size = UDim2.new(1, -16, 0, TAB_BUTTON_HEIGHT)
@@ -691,19 +803,23 @@ function KazeUI:CreateWindow(config)
 		local hoverTweenInfo = TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local hoverBG = Color3.fromRGB(28,28,31)
 		local leaveBG = TAB_BG
+
 		btn.MouseEnter:Connect(function()
 			if not leftIndicator.Visible then
 				TweenService:Create(btn, hoverTweenInfo, { BackgroundColor3 = hoverBG }):Play()
 				txt.TextColor3 = Color3.fromRGB(220,220,220)
 			end
 		end)
+
 		btn.MouseLeave:Connect(function()
 			if not leftIndicator.Visible then
 				TweenService:Create(btn, hoverTweenInfo, { BackgroundColor3 = leaveBG }):Play()
 				txt.TextColor3 = TAB_TEXT_INACTIVE
 			end
 		end)
+
 		btn.MouseButton1Click:Connect(activate)
+
 		if #self._Tabs == 1 then activate() end
 
 		-- public API
@@ -719,10 +835,16 @@ function KazeUI:CreateWindow(config)
 			return CreateParagraph(self._PageContent, self._Stroke.Color, ptitle, pbody)
 		end
 
+		-- NEW: Add Button method
+		function public:Button(config)
+			return CreateButton(self._PageContent, config)
+		end
+
 		-- SetIcon / SetText
 		function public:SetIcon(newIcon)
 			iconLabel.Image = FormatImage(newIcon)
 		end
+
 		function public:SetText(newText)
 			txt.Text = tostring(newText or "")
 		end
