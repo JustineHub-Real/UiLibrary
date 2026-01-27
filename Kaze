@@ -1,6 +1,10 @@
--- Kaze UI Library v2.0
--- Modular • Theme-Driven • Mobile-Optimized • Delta Executor Safe
--- Inspired by WindUI | Full drop-in replacement | Kazu Approved 💙
+-- Kaze UI Library v2.1 — WindUI-inspired • Mobile-Optimized • Delta Executor Safe
+-- Usage:
+-- local KazeUI = loadstring(game:HttpGet("https://.../Kaze.lua"))()
+-- local Window = KazeUI:CreateWindow({ Title = "Justine Hub", Author = "Justine", Icon = "10039618734" })
+-- local MainTab = Window:CreateTab("Main", "74198982546702")
+-- MainTab:Section("Hello...")
+-- MainTab:Paragraph("Info", "Look I made it...")
 
 local KazeUI = {}
 KazeUI.__index = KazeUI
@@ -10,35 +14,47 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local TextService = game:GetService("TextService")
-local Debris = game:GetService("Debris") -- Optional cleanup
 local LP = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- === UTILS === --
-local Utils = {}
+-- === THEME (Editable) === --
+local Theme = {
+	Primary = Color3.fromRGB(0, 160, 255),
+	Secondary = Color3.fromRGB(0, 140, 200),
+	Background = Color3.fromRGB(20, 20, 25),
+	Card = Color3.fromRGB(24, 24, 28),
+	CardActive = Color3.fromRGB(32, 32, 36),
+	TextPrimary = Color3.fromRGB(235, 235, 235),
+	TextSecondary = Color3.fromRGB(160, 160, 160),
+	TextInactive = Color3.fromRGB(200, 200, 200),
+	Divider = Color3.fromRGB(0, 200, 255),
+	Success = Color3.fromRGB(117, 204, 50),
+	Warning = Color3.fromRGB(255, 204, 51),
+	Error = Color3.fromRGB(235, 80, 80),
+}
 
-function Utils.FormatImage(id)
+-- === UTILS === --
+local function FormatImage(id)
 	if not id then return "" end
 	local str = tostring(id)
 	local clean = str:gsub("%D", "")
 	return clean == "" and "" or "rbxassetid://" .. clean
 end
 
-function Utils.SafeConnect(signal, callback)
+local function SafeConnect(signal, callback)
 	if not signal or not callback then return end
 	local conn
 	conn = signal:Connect(function(...)
 		if not conn then return end
 		task.spawn(callback, ...)
-	end)
-	return conn
+	end)	return conn
 end
 
-function Utils.MakeDraggable(dragPart, targetFrame)
+local function MakeDraggable(dragPart, targetFrame)
 	local dragging = false
 	local dragStart, startPos
 
-	Utils.SafeConnect(dragPart.InputBegan, function(input)
+	SafeConnect(dragPart.InputBegan, function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			dragStart = input.Position
@@ -46,12 +62,13 @@ function Utils.MakeDraggable(dragPart, targetFrame)
 		end
 	end)
 
-	Utils.SafeConnect(dragPart.InputEnded, function(input)
-		if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then			dragging = false
+	SafeConnect(dragPart.InputEnded, function(input)
+		if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+			dragging = false
 		end
 	end)
 
-	Utils.SafeConnect(UIS.InputChanged, function(input)
+	SafeConnect(UIS.InputChanged, function(input)
 		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			local delta = input.Position - dragStart
 			targetFrame.Position = UDim2.new(
@@ -62,7 +79,7 @@ function Utils.MakeDraggable(dragPart, targetFrame)
 	end)
 end
 
-function Utils.StartNeonLoop(target)
+local function StartNeonLoop(target)
 	if not target or not target:IsDescendantOf(workspace) then return end
 	task.spawn(function()
 		while target and target.Parent do
@@ -79,35 +96,15 @@ function Utils.StartNeonLoop(target)
 			local ok, tween = pcall(function()
 				return TweenService:Create(target, tweenInfo, { [propName] = Color3.fromRGB(0, 255, 255) })
 			end)
-			if ok and tween then
-				tween:Play()
-				Debris:AddItem(tween, 2)
+			if ok and tween then				tween:Play()
 			end
 			task.wait(1.5)
 		end
 	end)
 end
 
--- === THEME SYSTEM === --
-local Theme = {
-	Primary = Color3.fromRGB(0, 160, 255),
-	Secondary = Color3.fromRGB(0, 140, 200),
-	Background = Color3.fromRGB(20, 20, 25),
-	Card = Color3.fromRGB(24, 24, 28),
-	CardActive = Color3.fromRGB(32, 32, 36),
-	TextPrimary = Color3.fromRGB(235, 235, 235),
-	TextSecondary = Color3.fromRGB(160, 160, 160),	TextInactive = Color3.fromRGB(200, 200, 200),
-	Divider = Color3.fromRGB(0, 200, 255),
-	Success = Color3.fromRGB(117, 204, 50),
-	Warning = Color3.fromRGB(255, 204, 51),
-	Error = Color3.fromRGB(235, 80, 80),
-}
-
 -- === PARAGRAPH FACTORY === --
-local Paragraph = {}
-Paragraph.__index = Paragraph
-
-function Paragraph.new(parent, title, body, strokeColor)
+local function CreateParagraph(parent, title, body, strokeColor)
 	title = tostring(title or "")
 	body = tostring(body or "")
 	strokeColor = strokeColor or Theme.Primary
@@ -145,11 +142,10 @@ function Paragraph.new(parent, title, body, strokeColor)
 		end
 		if paraFrame:FindFirstChild("Inner") and paraFrame.Inner:FindFirstChild("ParagraphBody") then
 			paraFrame.Inner.ParagraphBody.Size = UDim2.new(1, 0, 0, bodyHeight)
-		end	end
+		end
+	end
 
-	-- Frame
-	local paraFrame = Instance.new("Frame")
-	paraFrame.Name = "Paragraph"
+	local paraFrame = Instance.new("Frame")	paraFrame.Name = "Paragraph"
 	paraFrame.AnchorPoint = Vector2.new(0.5, 0)
 	paraFrame.Position = UDim2.new(0.5, 0, 0, 6)
 	paraFrame.BackgroundColor3 = Theme.Card
@@ -157,7 +153,6 @@ function Paragraph.new(parent, title, body, strokeColor)
 	Instance.new("UICorner", paraFrame).CornerRadius = UDim.new(0, 8)
 	paraFrame.Parent = wrapper
 
-	-- Glow
 	local glow = Instance.new("Frame")
 	glow.Name = "ParagraphGlow"
 	glow.AnchorPoint = Vector2.new(0.5, 0)
@@ -166,16 +161,14 @@ function Paragraph.new(parent, title, body, strokeColor)
 	glow.BackgroundColor3 = strokeColor
 	Instance.new("UICorner", glow).CornerRadius = UDim.new(0, 10)
 	glow.Parent = wrapper
-	Utils.StartNeonLoop(glow)
+	StartNeonLoop(glow)
 
-	-- Stroke
 	local stroke = Instance.new("UIStroke", paraFrame)
 	stroke.Thickness = 2
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Color = strokeColor
-	Utils.StartNeonLoop(stroke)
+	StartNeonLoop(stroke)
 
-	-- Inner
 	local inner = Instance.new("Frame")
 	inner.Name = "Inner"
 	inner.Size = UDim2.new(1, -20, 1, -20)
@@ -195,13 +188,13 @@ function Paragraph.new(parent, title, body, strokeColor)
 		titleLabel.TextWrapped = true
 		titleLabel.Parent = inner
 	end
+
 	local bodyLabel = Instance.new("TextLabel")
 	bodyLabel.Name = "ParagraphBody"
 	bodyLabel.BackgroundTransparency = 1
 	bodyLabel.Text = body
 	bodyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	bodyLabel.Font = Enum.Font.Gotham
-	bodyLabel.TextSize = 14
+	bodyLabel.Font = Enum.Font.Gotham	bodyLabel.TextSize = 14
 	bodyLabel.TextWrapped = true
 	bodyLabel.TextXAlignment = Enum.TextXAlignment.Left
 	bodyLabel.TextYAlignment = Enum.TextYAlignment.Top
@@ -209,26 +202,17 @@ function Paragraph.new(parent, title, body, strokeColor)
 
 	updateSize()
 
-	local self = setmetatable({
-		Wrapper = wrapper,
-		Frame = paraFrame,
-		BodyLabel = bodyLabel,
-	}, Paragraph)
-
-	function self:SetText(newText)
-		body = tostring(newText or "")
-		bodyLabel.Text = body
-		task.defer(updateSize)
-	end
-
-	return self
+	return {
+		SetText = function(self, newText)
+			body = tostring(newText or "")
+			bodyLabel.Text = body
+			task.defer(updateSize)
+		end
+	}
 end
 
 -- === SECTION FACTORY === --
-local Section = {}
-Section.__index = Section
-
-function Section.new(parent, title)
+local function CreateSection(parent, title)
 	title = tostring(title or "")
 
 	local frame = Instance.new("Frame")
@@ -243,6 +227,7 @@ function Section.new(parent, title)
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	layout.VerticalAlignment = Enum.VerticalAlignment.Top
 	layout.Parent = frame
+
 	if title ~= "" then
 		local titleLabel = Instance.new("TextLabel")
 		titleLabel.Size = UDim2.new(1, 0, 0, 36)
@@ -258,8 +243,7 @@ function Section.new(parent, title)
 		local sep = Instance.new("Frame")
 		sep.Size = UDim2.new(0.6, 0, 0, 2)
 		sep.BackgroundColor3 = Color3.fromRGB(38, 38, 42)
-		sep.BorderSizePixel = 0
-		Instance.new("UICorner", sep).CornerRadius = UDim.new(0, 4)
+		sep.BorderSizePixel = 0		Instance.new("UICorner", sep).CornerRadius = UDim.new(0, 4)
 		sep.Parent = frame
 	end
 
@@ -276,44 +260,39 @@ function Section.new(parent, title)
 	contentLayout.VerticalAlignment = Enum.VerticalAlignment.Top
 	contentLayout.Parent = content
 
-	local self = setmetatable({
-		Frame = frame,
-		Content = content,
-	}, Section)
+	return {
+		AddLabel = function(self, text)
+			local label = Instance.new("TextLabel")
+			label.Size = UDim2.new(1, -40, 0, 24)
+			label.BackgroundTransparency = 1
+			label.Text = tostring(text or "")
+			label.TextColor3 = Color3.fromRGB(220, 220, 220)
+			label.Font = Enum.Font.Gotham
+			label.TextSize = 14
+			label.TextXAlignment = Enum.TextXAlignment.Left
+			label.Parent = content
+			return label
+		end,
 
-	function self:AddLabel(text)
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.new(1, -40, 0, 24)
-		label.BackgroundTransparency = 1
-		label.Text = tostring(text or "")
-		label.TextColor3 = Color3.fromRGB(220, 220, 220)
-		label.Font = Enum.Font.Gotham
-		label.TextSize = 14
-		label.TextXAlignment = Enum.TextXAlignment.Left
-		label.Parent = content
-		return label
-	end
-	function self:AddParagraph(ptitle, pbody)
-		return Paragraph.new(content, ptitle, pbody, Theme.Primary)
-	end
-
-	return self
+		AddParagraph = function(self, ptitle, pbody)
+			return CreateParagraph(content, ptitle, pbody, Theme.Primary)
+		end
+	}
 end
 
--- === TAB FACTORY === --
+-- === TAB CLASS === --
 local Tab = {}
 Tab.__index = Tab
 
-function Tab.new(sidebarList, pagesFrame, name, iconId, theme)
+function Tab.new(sidebarList, pagesFrame, name, iconId)
 	name = tostring(name or "Tab")
-	iconId = Utils.FormatImage(iconId)
+	iconId = FormatImage(iconId)
 
 	local btn = Instance.new("TextButton")
 	btn.Name = "Tab_" .. name
 	btn.Size = UDim2.new(1, -16, 0, 44)
-	btn.BackgroundColor3 = theme.Card
-	btn.BorderSizePixel = 0
-	btn.Text = ""
+	btn.BackgroundColor3 = Theme.Card
+	btn.BorderSizePixel = 0	btn.Text = ""
 	btn.AutoButtonColor = false
 	btn.Parent = sidebarList
 
@@ -321,7 +300,7 @@ function Tab.new(sidebarList, pagesFrame, name, iconId, theme)
 
 	local indicator = Instance.new("Frame")
 	indicator.Size = UDim2.new(0, 4, 1, 0)
-	indicator.BackgroundColor3 = theme.Primary
+	indicator.BackgroundColor3 = Theme.Primary
 	indicator.BorderSizePixel = 0
 	indicator.Visible = false
 	Instance.new("UICorner", indicator).CornerRadius = UDim.new(0, 6)
@@ -340,70 +319,63 @@ function Tab.new(sidebarList, pagesFrame, name, iconId, theme)
 	label.Position = UDim2.fromOffset(48, 0)
 	label.BackgroundTransparency = 1
 	label.Text = name
-	label.TextColor3 = theme.TextInactive
-	label.Font = Enum.Font.Gotham	label.TextSize = 15
+	label.TextColor3 = Theme.TextInactive
+	label.Font = Enum.Font.Gotham
+	label.TextSize = 15
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = btn
 
-	local page = Instance.new("Frame")
+	local page = Instance.new("ScrollingFrame")
 	page.Name = "Page_" .. name
+	page.Size = UDim2.new(1, 0, 1, 0)
 	page.BackgroundTransparency = 1
 	page.Visible = false
+	page.ScrollBarThickness = 4
+	page.ScrollBarImageColor3 = Color3.fromRGB(40, 40, 45)
+	page.CanvasSize = UDim2.new(0, 0, 0, 0)
+	page.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	page.Parent = pagesFrame
-
-	local pageContent = Instance.new("ScrollingFrame")
-	pageContent.Name = "PageContent"
-	pageContent.Size = UDim2.new(1, 0, 1, 0)
-	pageContent.BackgroundTransparency = 1
-	pageContent.ScrollBarThickness = 4
-	pageContent.ScrollBarImageColor3 = Color3.fromRGB(40, 40, 45)
-	pageContent.CanvasSize = UDim2.new(0, 0, 0, 0)
-	pageContent.AutomaticCanvasSize = Enum.AutomaticSize.Y
-	pageContent.Parent = page
 
 	local layout = Instance.new("UIListLayout")
 	layout.SortOrder = Enum.SortOrder.LayoutOrder
 	layout.Padding = UDim.new(0, 12)
 	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	layout.VerticalAlignment = Enum.VerticalAlignment.Top
-	layout.Parent = pageContent
-
+	layout.Parent = page
 	local self = setmetatable({
 		Button = btn,
 		Page = page,
-		PageContent = pageContent,
 		Indicator = indicator,
 		Label = label,
-		Theme = theme,
 	}, Tab)
 
 	function self:Activate(allTabs)
 		for _, t in ipairs(allTabs) do
-			t.Button.BackgroundColor3 = self.Theme.Card
+			t.Button.BackgroundColor3 = Theme.Card
 			t.Indicator.Visible = false
 			t.Page.Visible = false
-			t.Label.TextColor3 = self.Theme.TextInactive
+			t.Label.TextColor3 = Theme.TextInactive
 			t.Label.Font = Enum.Font.Gotham
 		end
 
-		btn.BackgroundColor3 = self.Theme.CardActive
+		btn.BackgroundColor3 = Theme.CardActive
 		indicator.Visible = true
 		page.Visible = true
-		label.TextColor3 = self.Theme.TextPrimary
-		label.Font = Enum.Font.GothamBold	end
+		label.TextColor3 = Theme.TextPrimary
+		label.Font = Enum.Font.GothamBold
+	end
 
-	-- Hover
-	Utils.SafeConnect(btn.MouseEnter, function()
+	SafeConnect(btn.MouseEnter, function()
 		if not indicator.Visible then
 			TweenService:Create(btn, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(28, 28, 31) }):Play()
 			label.TextColor3 = Color3.fromRGB(220, 220, 220)
 		end
 	end)
 
-	Utils.SafeConnect(btn.MouseLeave, function()
+	SafeConnect(btn.MouseLeave, function()
 		if not indicator.Visible then
-			TweenService:Create(btn, TweenInfo.new(0.1), { BackgroundColor3 = self.Theme.Card }):Play()
-			label.TextColor3 = self.Theme.TextInactive
+			TweenService:Create(btn, TweenInfo.new(0.1), { BackgroundColor3 = Theme.Card }):Play()
+			label.TextColor3 = Theme.TextInactive
 		end
 	end)
 
@@ -416,15 +388,14 @@ function KazeUI:CreateWindow(config)
 	local Title = config.Title or "Kaze UI"
 	local Author = config.Author or "Unknown"
 	local Version = config.Version or "1.0"
-	local Icon = Utils.FormatImage(config.Icon or "6031763447")
-	local OpenIcon = Utils.FormatImage((config.OpenButton and config.OpenButton.Icon) or config.Icon or "6031763447")
-
+	local Icon = FormatImage(config.Icon or "6031763447")
+	local OpenIcon = FormatImage((config.OpenButton and config.OpenButton.Icon) or config.Icon or "6031763447")
 	-- ScreenGui
 	local ScreenGui = Instance.new("ScreenGui")
 	ScreenGui.Name = "KazeUI"
 	ScreenGui.ResetOnSpawn = false
 	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	ScreenGui.IgnoreGuiInset = true -- Mobile safe area
+	ScreenGui.IgnoreGuiInset = true
 	ScreenGui.Parent = LP:WaitForChild("PlayerGui")
 
 	-- UIScale
@@ -440,10 +411,11 @@ function KazeUI:CreateWindow(config)
 			UIScale.Scale = math.clamp(size.X / 1920, 0.6, 1)
 		end
 	end
+
 	UpdateScale()
 	Camera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateScale)
 
-	-- Main Window
+	-- Window Frame
 	local Window = Instance.new("Frame")
 	Window.Size = UDim2.fromOffset(650, 420)
 	Window.Position = UDim2.fromScale(0.5, 0.5)
@@ -459,7 +431,7 @@ function KazeUI:CreateWindow(config)
 	WindowStroke.Color = Theme.Primary
 	WindowStroke.Thickness = 2.5
 	WindowStroke.Parent = Window
-	Utils.StartNeonLoop(WindowStroke)
+	StartNeonLoop(WindowStroke)
 
 	-- TopBar
 	local TopBar = Instance.new("Frame")
@@ -467,8 +439,7 @@ function KazeUI:CreateWindow(config)
 	TopBar.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 	TopBar.BorderSizePixel = 0
 	TopBar.Parent = Window
-	Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 14)
-	Utils.MakeDraggable(TopBar, Window)
+	Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 14)	MakeDraggable(TopBar, Window)
 
 	-- Avatar
 	local Avatar = Instance.new("ImageLabel")
@@ -488,7 +459,8 @@ function KazeUI:CreateWindow(config)
 	TitleLabel.Position = UDim2.fromOffset(56, 8)
 	TitleLabel.BackgroundTransparency = 1
 	TitleLabel.Text = Title
-	TitleLabel.TextColor3 = Theme.TextPrimary	TitleLabel.Font = Enum.Font.GothamBold
+	TitleLabel.TextColor3 = Theme.TextPrimary
+	TitleLabel.Font = Enum.Font.GothamBold
 	TitleLabel.TextSize = 16
 	TitleLabel.Parent = TopBar
 
@@ -514,10 +486,9 @@ function KazeUI:CreateWindow(config)
 	local topDivStroke = Instance.new("UIStroke", TopDivider)
 	topDivStroke.Color = Theme.Primary
 	topDivStroke.Thickness = 2.5
-	Utils.StartNeonLoop(topDivStroke)
+	StartNeonLoop(topDivStroke)
 
-	-- Traffic Lights
-	local function createTrafficBtn(name, offsetX, color)
+	-- Traffic Lights	local function createTrafficBtn(name, offsetX, color)
 		local btn = Instance.new("TextButton")
 		btn.Size = UDim2.fromOffset(18, 18)
 		btn.Position = UDim2.new(1, offsetX, 0.5, -9)
@@ -534,10 +505,11 @@ function KazeUI:CreateWindow(config)
 	local BtnYellow = createTrafficBtn("Maximize", -88, Theme.Warning)
 	local BtnRed = createTrafficBtn("Close", -56, Theme.Error)
 
-	-- Mini Button (for minimized state)
+	-- Mini Button
 	local MiniButton = Instance.new("ImageButton")
 	MiniButton.Size = UDim2.fromOffset(60, 60)
-	MiniButton.Position = UDim2.fromScale(0.1, 0.1)	MiniButton.BackgroundColor3 = Theme.Background
+	MiniButton.Position = UDim2.fromScale(0.1, 0.1)
+	MiniButton.BackgroundColor3 = Theme.Background
 	MiniButton.BorderSizePixel = 0
 	MiniButton.Visible = false
 	MiniButton.ZIndex = 999
@@ -565,10 +537,9 @@ function KazeUI:CreateWindow(config)
 	MiniStroke.Color = Theme.Primary
 	MiniStroke.Thickness = 2.5
 	MiniStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	MiniStroke.Parent = MiniButton
-	Utils.StartNeonLoop(MiniStroke)
+	MiniStroke.Parent = MiniButton	StartNeonLoop(MiniStroke)
 
-	Utils.MakeDraggable(MiniButton, MiniButton)
+	MakeDraggable(MiniButton, MiniButton)
 
 	-- State
 	local defaultSize = UDim2.fromOffset(650, 420)
@@ -578,7 +549,7 @@ function KazeUI:CreateWindow(config)
 	local isMaximized = false
 
 	-- Minimize
-	Utils.SafeConnect(BtnYellow.MouseButton1Click, function()
+	SafeConnect(BtnYellow.MouseButton1Click, function()
 		Window.Visible = false
 		MiniButton.Visible = true
 		MiniButton.Size = UDim2.fromOffset(0, 0)
@@ -586,8 +557,9 @@ function KazeUI:CreateWindow(config)
 			Size = UDim2.fromOffset(60, 60)
 		}):Play()
 	end)
+
 	-- Maximize/Restore
-	Utils.SafeConnect(BtnGreen.MouseButton1Click, function()
+	SafeConnect(BtnGreen.MouseButton1Click, function()
 		if not isMaximized then
 			lastNormalSize = Window.Size
 			lastNormalPos = Window.Position
@@ -611,11 +583,10 @@ function KazeUI:CreateWindow(config)
 	end)
 
 	-- Restore from Mini
-	Utils.SafeConnect(MiniButton.MouseButton1Click, function()
+	SafeConnect(MiniButton.MouseButton1Click, function()
 		MiniButton.Visible = false
 		Window.Visible = true
-		Window.Size = UDim2.fromOffset(0, 0)
-		if isMaximized then
+		Window.Size = UDim2.fromOffset(0, 0)		if isMaximized then
 			Window.AnchorPoint = Vector2.new(0.5, 0.5)
 			Window.Position = UDim2.fromScale(0.5, 0.5)
 			TweenService:Create(Window, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
@@ -635,7 +606,8 @@ function KazeUI:CreateWindow(config)
 	local function ShowCloseConfirm()
 		local overlay = Instance.new("Frame")
 		overlay.Size = UDim2.new(1, 0, 1, 0)
-		overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)		overlay.BackgroundTransparency = 0.6
+		overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		overlay.BackgroundTransparency = 0.6
 		overlay.ZIndex = 50
 		overlay.Parent = Window
 
@@ -652,7 +624,7 @@ function KazeUI:CreateWindow(config)
 		stroke.Color = Theme.Primary
 		stroke.Thickness = 2.5
 		stroke.Parent = confirmFrame
-		Utils.StartNeonLoop(stroke)
+		StartNeonLoop(stroke)
 
 		local text = Instance.new("TextLabel")
 		text.Size = UDim2.new(1, -32, 0, 48)
@@ -663,8 +635,7 @@ function KazeUI:CreateWindow(config)
 		text.Font = Enum.Font.GothamBold
 		text.TextSize = 18
 		text.TextWrapped = true
-		text.ZIndex = 53
-		text.Parent = confirmFrame
+		text.ZIndex = 53		text.Parent = confirmFrame
 
 		local btns = Instance.new("Frame")
 		btns.Size = UDim2.new(1, 0, 0, 40)
@@ -684,7 +655,8 @@ function KazeUI:CreateWindow(config)
 		confirmBtn.BackgroundColor3 = Theme.Primary
 		confirmBtn.Text = "Confirm"
 		confirmBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
-		confirmBtn.Font = Enum.Font.GothamBold		confirmBtn.ZIndex = 54
+		confirmBtn.Font = Enum.Font.GothamBold
+		confirmBtn.ZIndex = 54
 		confirmBtn.Parent = btns
 		Instance.new("UICorner", confirmBtn).CornerRadius = UDim.new(0, 8)
 
@@ -698,22 +670,21 @@ function KazeUI:CreateWindow(config)
 		cancelBtn.Parent = btns
 		Instance.new("UICorner", cancelBtn).CornerRadius = UDim.new(0, 8)
 
-		Utils.SafeConnect(confirmBtn.MouseButton1Click, function()
+		SafeConnect(confirmBtn.MouseButton1Click, function()
 			ScreenGui:Destroy()
 		end)
 
-		Utils.SafeConnect(cancelBtn.MouseButton1Click, function()
+		SafeConnect(cancelBtn.MouseButton1Click, function()
 			overlay:Destroy()
 		end)
 	end
 
-	Utils.SafeConnect(BtnRed.MouseButton1Click, ShowCloseConfirm)
+	SafeConnect(BtnRed.MouseButton1Click, ShowCloseConfirm)
 
 	-- Content Area
 	local Content = Instance.new("Frame")
 	Content.Position = UDim2.fromOffset(0, 56)
-	Content.Size = UDim2.new(1, 0, 1, -56)
-	Content.BackgroundTransparency = 1
+	Content.Size = UDim2.new(1, 0, 1, -56)	Content.BackgroundTransparency = 1
 	Content.Parent = Window
 
 	-- Sidebar
@@ -733,8 +704,9 @@ function KazeUI:CreateWindow(config)
 	VertDivider.Parent = Content
 	Instance.new("UICorner", VertDivider).CornerRadius = UDim.new(0, 6)
 	local vertStroke = Instance.new("UIStroke", VertDivider)
-	vertStroke.Color = Theme.Primary	vertStroke.Thickness = 2.5
-	Utils.StartNeonLoop(vertStroke)
+	vertStroke.Color = Theme.Primary
+	vertStroke.Thickness = 2.5
+	StartNeonLoop(vertStroke)
 
 	-- Pages Container
 	local Pages = Instance.new("Frame")
@@ -761,54 +733,41 @@ function KazeUI:CreateWindow(config)
 	TabsList.Size = UDim2.new(1, 0, 0, 0)
 	TabsList.AutomaticSize = Enum.AutomaticSize.Y
 	TabsList.Parent = TabsScroller
-
 	Instance.new("UIListLayout", TabsList).SortOrder = Enum.SortOrder.LayoutOrder
 	Instance.new("UIPadding", TabsList).PaddingBottom = UDim.new(0, 8)
 
 	-- Window API
 	local Win = {
-		Window = Window,
-		ScreenGui = ScreenGui,
-		MiniButton = MiniButton,
-		Pages = Pages,
-		Tabs = {},
-		Theme = Theme,
+		_Tabs = {},
+		_Pages = Pages,
+		_TabsList = TabsList,
+		_ScreenGui = ScreenGui
 	}
 
 	function Win:CreateTab(name, iconId)
-		local tab = Tab.new(TabsList, Pages, name, iconId, self.Theme)
-		table.insert(self.Tabs, tab)
+		local tab = Tab.new(TabsList, Pages, name, iconId)
+		table.insert(self._Tabs, tab)
 
-		Utils.SafeConnect(tab.Button.MouseButton1Click, function()
-			tab:Activate(self.Tabs)
+		SafeConnect(tab.Button.MouseButton1Click, function()
+			tab:Activate(self._Tabs)
 		end)
-		if #self.Tabs == 1 then
-			tab:Activate(self.Tabs)
+
+		if #self._Tabs == 1 then
+			tab:Activate(self._Tabs)
 		end
 
-		local public = {
-			Page = tab.Page,
-			_PageContent = tab.PageContent,
-			_Theme = self.Theme,
-		}
+		-- Public Tab API
+		local publicTab = {}
 
-		function public:Section(title)
-			return Section.new(tab.PageContent, title)
+		function publicTab:Section(title)
+			return CreateSection(tab.Page, title)
 		end
 
-		function public:Paragraph(title, body)
-			return Paragraph.new(tab.PageContent, title, body, self._Theme.Primary)
+		function publicTab:Paragraph(ptitle, pbody)
+			return CreateParagraph(tab.Page, ptitle, pbody, Theme.Primary)
 		end
 
-		return public
-	end
-
-	function Win:GetTabs()
-		local out = {}
-		for i, tab in ipairs(self.Tabs) do
-			table.insert(out, { Index = i, Button = tab.Button, Page = tab.Page })
-		end
-		return out
+		return publicTab
 	end
 
 	if typeof(config.Callback) == "function" then
