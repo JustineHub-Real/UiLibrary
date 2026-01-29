@@ -1,22 +1,20 @@
--- KazeUI v2.1 — Modular, Theme-Driven, Mobile-Friendly
--- ✅ Fixed: "attempt to index nil with 'Size'"
--- ✅ Order: Core → Tabs → Elements
--- ✅ Safe fallbacks for layout-dependent sizes
--- ✅ Fully compatible with Roblox Studio + mobile
+-- KazeUI v2.2 — Fixed for loadstring + nil indexing + your exact API
+-- ✅ Now: KazeUI:CreateWindow() works; no top-level UI creation
+-- ✅ Uses Size.X instead AbsoluteSize.X
+-- ✅ Fully compatible with your example usage
 
 local KazeUI = {}
 KazeUI.__index = KazeUI
 
--- === SERVICES === --
+-- Services (safe)
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local TextService = game:GetService("TextService")
 local LP = Players.LocalPlayer
 
--- === THEME SYSTEM === --
+-- === THEME (hardcoded for now, but modular) ===
 local Theme = {
-	-- Core
 	PrimaryColor = Color3.fromRGB(0, 160, 255),
 	NeonGlow = Color3.fromRGB(0, 255, 255),
 	Background = Color3.fromRGB(20, 20, 25),
@@ -24,35 +22,32 @@ local Theme = {
 	TopBar = Color3.fromRGB(15, 15, 20),
 	StrokeThickness = 2.5,
 
-	-- Tabs
 	TabInactive = Color3.fromRGB(24, 24, 28),
 	TabActive = Color3.fromRGB(32, 32, 36),
 	TabHover = Color3.fromRGB(28, 28, 31),
 	TabTextInactive = Color3.fromRGB(200, 200, 200),
 	TabTextActive = Color3.fromRGB(240, 240, 240),
 
-	-- Elements
 	ParagraphBg = Color3.fromRGB(24, 24, 28),
 	SectionTitle = Color3.fromRGB(0, 120, 255),
 	Separator = Color3.fromRGB(38, 38, 42),
 	LabelText = Color3.fromRGB(220, 220, 220),
 
-	-- Buttons
 	ButtonConfirm = Color3.fromRGB(0, 170, 255),
 	ButtonCancel = Color3.fromRGB(45, 45, 50),
 }
 
--- === HELPERS === --
+-- === HELPERS ===
 local function FormatImage(id)
 	if not id then return "" end
 	id = tostring(id)
 	local clean = string.gsub(id, "%D", "")
-	return (clean ~= "") and ("rbxassetid://" .. clean) or ""end
+	return (clean ~= "") and ("rbxassetid://" .. clean) or ""
+end
 
 local function MakeDraggable(dragPart, targetPart)
 	local dragging = false
 	local dragStart, startPos
-
 	dragPart.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
@@ -94,26 +89,366 @@ local function StartNeonLoop(target)
 	end)
 end
 
+-- === SAFE WIDTH HELPER ===
+local function GetWidth(parent)
+	if not parent then return 520 end
+	local w = parent.Size.X
+	if w > 0 then return w * 0.95 end
+	return 520
+end
 -- ==============================================
--- ✅ MODULE 1: CORE / UI (Main Window)
--- ==============================================local UI = {}
+-- ELEMENTS FACTORY (used by Tabs)
+-- ==============================================
+local Elements = {}
 
-function UI.CreateWindow(config)
+function Elements.CreateParagraph(parentFrame, strokeColor, title, body)
+	title = tostring(title or "")
+	body = tostring(body or "")
+
+	local measuredWidth = GetWidth(parentFrame)
+
+	local titleHeight = 0
+	if title ~= " " then
+		local ts = TextService:GetTextSize(title, 16, Enum.Font.GothamBold, Vector2.new(measuredWidth - 32, 1000))
+		titleHeight = math.max(20, math.ceil(ts.Y))
+	end
+
+	local bodySize = TextService:GetTextSize(body, 14, Enum.Font.Gotham, Vector2.new(measuredWidth - 32, 2000))
+	local bodyHeight = math.ceil(bodySize.Y)
+	local totalHeight = 10 + titleHeight + 6 + bodyHeight + 10
+
+	local wrapper = Instance.new("Frame")
+	wrapper.Name = "ParagraphWrapper"
+	wrapper.Size = UDim2.new(1, 0, 0, totalHeight + 12)
+	wrapper.BackgroundTransparency = 1
+	wrapper.AutomaticSize = Enum.AutomaticSize.Y
+	wrapper.Parent = parentFrame
+
+	local paraFrame = Instance.new("Frame")
+	paraFrame.Name = "Paragraph"
+	paraFrame.AnchorPoint = Vector2.new(0.5, 0)
+	paraFrame.Position = UDim2.new(0.5, 0, 0, 6)
+	paraFrame.Size = UDim2.new(0.95, 0, 0, totalHeight)
+	paraFrame.BackgroundColor3 = Theme.ParagraphBg
+	paraFrame.BorderSizePixel = 0
+	Instance.new("UICorner", paraFrame).CornerRadius = UDim.new(0, 8)
+	paraFrame.Parent = wrapper
+
+	local glow = Instance.new("Frame")
+	glow.Name = "ParagraphGlow"
+	glow.AnchorPoint = Vector2.new(0.5, 0)
+	glow.Position = UDim2.new(0.5, 0, 0, 4)
+	glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 10)
+	glow.BackgroundTransparency = 0.96
+	glow.BackgroundColor3 = strokeColor or Theme.PrimaryColor
+	Instance.new("UICorner", glow).CornerRadius = UDim.new(0, 10)
+	glow.Parent = wrapper
+	StartNeonLoop(glow)
+
+	local paraStroke = Instance.new("UIStroke", paraFrame)	paraStroke.Thickness = 2
+	paraStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	paraStroke.Color = strokeColor or Theme.PrimaryColor
+	StartNeonLoop(paraStroke)
+
+	local inner = Instance.new("Frame")
+	inner.Size = UDim2.new(1, -20, 1, -20)
+	inner.Position = UDim2.fromOffset(10, 10)
+	inner.BackgroundTransparency = 1
+	inner.Parent = paraFrame
+
+	if title ~= " " then
+		local titleLabel = Instance.new("TextLabel")
+		titleLabel.Name = "ParagraphTitle"
+		titleLabel.Size = UDim2.new(1, 0, 0, titleHeight)
+		titleLabel.Position = UDim2.fromOffset(0, 0)
+		titleLabel.BackgroundTransparency = 1
+		titleLabel.Text = title
+		titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+		titleLabel.Font = Enum.Font.GothamBold
+		titleLabel.TextSize = 16
+		titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+		titleLabel.TextWrapped = true
+		titleLabel.Parent = inner
+	end
+
+	local bodyLabel = Instance.new("TextLabel")
+	bodyLabel.Name = "ParagraphBody"
+	bodyLabel.Size = UDim2.new(1, 0, 0, bodyHeight)
+	bodyLabel.Position = UDim2.fromOffset(0, titleHeight + 6)
+	bodyLabel.BackgroundTransparency = 1
+	bodyLabel.Text = body
+	bodyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	bodyLabel.Font = Enum.Font.Gotham
+	bodyLabel.TextSize = 14
+	bodyLabel.TextWrapped = true
+	bodyLabel.TextXAlignment = Enum.TextXAlignment.Left
+	bodyLabel.TextYAlignment = Enum.TextYAlignment.Top
+	bodyLabel.Parent = inner
+
+	return {
+		Wrapper = wrapper,
+		Frame = paraFrame,
+		BodyLabel = bodyLabel,
+		SetText = function(self, newText)
+			newText = tostring(newText or " ")
+			bodyLabel.Text = newText
+			task.defer(function()
+				local w = GetWidth(parentFrame)
+				local newTitleH = 0				if title ~= " " then
+					local ts2 = TextService:GetTextSize(title, 16, Enum.Font.GothamBold, Vector2.new(w - 32, 1000))
+					newTitleH = math.max(20, math.ceil(ts2.Y))
+				end
+				local newBodySize = TextService:GetTextSize(newText, 14, Enum.Font.Gotham, Vector2.new(w - 32, 2000))
+				local newBodyH = math.ceil(newBodySize.Y)
+				local newTotal = 10 + newTitleH + 6 + newBodyH + 10
+				paraFrame.Size = UDim2.new(0.95, 0, 0, newTotal)
+				glow.Size = UDim2.new(0.96, 0, 0, newTotal + 10)
+				wrapper.Size = UDim2.new(1, 0, 0, newTotal + 12)
+				if titleLabel then titleLabel.Size = UDim2.new(1, 0, 0, newTitleH) end
+				bodyLabel.Size = UDim2.new(1, 0, 0, newBodyH)
+			end)
+		end,
+	}
+end
+
+function Elements.CreateSection(parentFrame, title)
+	title = tostring(title or " ")
+	local sectionFrame = Instance.new("Frame")
+	sectionFrame.Name = "Section_" .. title
+	sectionFrame.Size = UDim2.new(1, -24, 0, 0)
+	sectionFrame.BackgroundTransparency = 1
+	sectionFrame.AutomaticSize = Enum.AutomaticSize.Y
+	sectionFrame.Parent = parentFrame
+
+	local sectionLayout = Instance.new("UIListLayout")
+	sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	sectionLayout.Padding = UDim.new(0, 6)
+	sectionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	sectionLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+	sectionLayout.Parent = sectionFrame
+
+	local titleLabel = Instance.new("")
+	titleLabel.Name = "SectionTitle"
+	titleLabel.Size = UDim2.new(1, 0, 0, 36)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Text = title
+	titleLabel.TextColor3 = Theme.SectionTitle
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 22
+	titleLabel.TextWrapped = true
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+	titleLabel.Parent = sectionFrame
+
+	local sep = Instance.new("Frame")
+	sep.Name = "SectionSeparator"
+	sep.Size = UDim2.new(0.6, 0, 0, 2)
+	sep.BackgroundColor3 = Theme.Separator
+	sep.BorderSizePixel = 0	Instance.new("UICorner", sep).CornerRadius = UDim.new(0, 4)
+	sep.Parent = sectionFrame
+
+	local sectionContent = Instance.new("Frame")
+	sectionContent.Name = "SectionContent"
+	sectionContent.Size = UDim2.new(1, 0, 0, 0)
+	sectionContent.BackgroundTransparency = 1
+	sectionContent.AutomaticSize = Enum.AutomaticSize.Y
+	sectionContent.Parent = sectionFrame
+
+	local secLayout = Instance.new("UIListLayout")
+	secLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	secLayout.Padding = UDim.new(0, 8)
+	secLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	secLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+	secLayout.Parent = sectionContent
+
+	return {
+		Frame = sectionFrame,
+		TitleLabel = titleLabel,
+		AddLabel = function(self, text)
+			local label = Instance.new("TextLabel")
+			label.Size = UDim2.new(1, -40, 0, 24)
+			label.BackgroundTransparency = 1
+			label.Text = tostring(text or " ")
+			label.TextColor3 = Theme.LabelText
+			label.Font = Enum.Font.Gotham
+			label.TextSize = 14
+			label.TextXAlignment = Enum.TextXAlignment.Left
+			label.Parent = sectionContent
+			return label
+		end,
+		AddParagraph = function(self, ptitle, pbody)
+			return Elements.CreateParagraph(sectionContent, Theme.PrimaryColor, ptitle, pbody)
+		end,
+	}
+end
+
+-- ==============================================
+-- TABS MODULE
+-- ==============================================
+local Tabs = {}
+
+function Tabs.New(sidebar, pages, strokeColor)
+	local tabsScroller = Instance.new("ScrollingFrame")
+	tabsScroller.Name = "TabsScroller"
+	tabsScroller.BackgroundTransparency = 1
+	tabsScroller.ScrollBarThickness = 6
+	tabsScroller.CanvasSize = UDim2.new(0, 0, 0, 0)
+	tabsScroller.AutomaticCanvasSize = Enum.AutomaticSize.Y	tabsScroller.ScrollBarImageColor3 = Color3.fromRGB(40, 40, 45)
+	tabsScroller.Size = UDim2.new(1, -16, 1, -16)
+	tabsScroller.Position = UDim2.fromOffset(8, 8)
+	tabsScroller.Parent = sidebar
+
+	local tabsList = Instance.new("Frame")
+	tabsList.Name = "TabsList"
+	tabsList.BackgroundTransparency = 1
+	tabsList.Size = UDim2.new(1, 0, 0, 0)
+	tabsList.AutomaticSize = Enum.AutomaticSize.Y
+	tabsList.Parent = tabsScroller
+
+	local tabsLayout = Instance.new("UIListLayout")
+	tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	tabsLayout.Padding = UDim.new(0, 8)
+	tabsLayout.Parent = tabsList
+
+	local createdTabs = {}
+
+	local function activateTab(targetTab)
+		for _, t in ipairs(createdTabs) do
+			TweenService:Create(t.Button, TweenInfo.new(0.12), { BackgroundColor3 = Theme.TabInactive }):Play()
+			t.Indicator.Visible = false
+			t.Page.Visible = false
+			t.Label.TextColor3 = Theme.TabTextInactive
+			t.Label.Font = Enum.Font.Gotham
+		end
+		TweenService:Create(targetTab.Button, TweenInfo.new(0.12), { BackgroundColor3 = Theme.TabActive }):Play()
+		targetTab.Indicator.Visible = true
+		targetTab.Page.Visible = true
+		targetTab.Label.TextColor3 = Theme.TabTextActive
+		targetTab.Label.Font = Enum.Font.GothamBold
+	end
+
+	return {
+		CreateTab = function(self, name, iconId)
+			name = tostring(name or "Tab")
+			local formattedIcon = FormatImage(iconId or "")
+
+			local btn = Instance.new("TextButton")
+			btn.Name = "TabButton_" .. name
+			btn.Size = UDim2.new(1, -16, 0, 44)
+			btn.BackgroundColor3 = Theme.TabInactive
+			btn.BorderSizePixel = 0
+			btn.Text = " "
+			btn.AutoButtonColor = false
+			btn.LayoutOrder = #createdTabs + 1
+			btn.Parent = tabsList
+
+			Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+			local leftIndicator = Instance.new("Frame")
+			leftIndicator.Name = "LeftIndicator"
+			leftIndicator.Size = UDim2.new(0, 4, 1, 0)
+			leftIndicator.BackgroundColor3 = strokeColor or Theme.PrimaryColor
+			leftIndicator.BorderSizePixel = 0
+			leftIndicator.Visible = false
+			Instance.new("UICorner", leftIndicator).CornerRadius = UDim.new(0, 6)
+			leftIndicator.Parent = btn
+
+			local iconLabel = Instance.new("ImageLabel")
+			iconLabel.Name = "Icon"
+			iconLabel.Size = UDim2.fromOffset(28, 28)
+			iconLabel.Position = UDim2.new(0, 10, 0.5, -14)
+			iconLabel.BackgroundTransparency = 1
+			iconLabel.Image = formattedIcon
+			Instance.new("UICorner", iconLabel).CornerRadius = UDim.new(1, 0)
+			iconLabel.Parent = btn
+
+			local txt = Instance.new("TextLabel")
+			txt.Name = "Label"
+			txt.Size = UDim2.new(1, -56, 1, 0)
+			txt.Position = UDim2.fromOffset(48, 0)
+			txt.BackgroundTransparency = 1
+			txt.Text = name
+			txt.TextColor3 = Theme.TabTextInactive
+			txt.Font = Enum.Font.Gotham
+			txt.TextSize = 15
+			txt.TextXAlignment = Enum.TextXAlignment.Left
+			txt.Parent = btn
+
+			local page = Instance.new("Frame")
+			page.Name = "Page_" .. name
+			page.Size = UDim2.new(1, 0, 1, 0)
+			page.BackgroundTransparency = 1
+			page.Visible = false
+			page.Parent = pages
+
+			local pageContent = Instance.new("Frame")
+			pageContent.Name = "PageContent"
+			pageContent.Size = UDim2.new(1, 0, 1, 0)
+			pageContent.BackgroundTransparency = 1
+			pageContent.Parent = page
+
+			local contentLayout = Instance.new("UIListLayout")
+			contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+			contentLayout.Padding = UDim.new(0, 8)
+			contentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			contentLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+			contentLayout.Parent = pageContent
+			local tabObj = {
+				Button = btn,
+				Indicator = leftIndicator,
+				Label = txt,
+				Icon = iconLabel,
+				Page = page,
+				PageContent = pageContent,
+			}
+			table.insert(createdTabs, tabObj)
+
+			btn.MouseEnter:Connect(function()
+				if not leftIndicator.Visible then
+					TweenService:Create(btn, TweenInfo.new(0.10), { BackgroundColor3 = Theme.TabHover }):Play()
+					txt.TextColor3 = Color3.fromRGB(220, 220, 220)
+				end
+			end)
+			btn.MouseLeave:Connect(function()
+				if not leftIndicator.Visible then
+					TweenService:Create(btn, TweenInfo.new(0.10), { BackgroundColor3 = Theme.TabInactive }):Play()
+					txt.TextColor3 = Theme.TabTextInactive
+				end
+			end)
+			btn.MouseButton1Click:Connect(function() activateTab(tabObj) end)
+
+			if #createdTabs == 1 then activateTab(tabObj) end
+
+			return {
+				Page = page,
+				PageContent = pageContent,
+				Paragraph = function(_, ptitle, pbody)
+					return Elements.CreateParagraph(pageContent, strokeColor or Theme.PrimaryColor, ptitle, pbody)
+				end,
+				Section = function(_, stitle)
+					return Elements.CreateSection(pageContent, stitle)
+				end,
+			}
+		end,
+	}
+end
+
+-- ==============================================
+-- CORE: CreateWindow (now safe, no top-level UI)
+-- ==============================================
+function KazeUI:CreateWindow(config)
 	config = config or {}
 	local Title = config.Title or "Kaze UI"
 	local Author = config.Author or "Unknown"
 	local Version = config.Version or "1.0"
-	local MainIcon = FormatImage(config.Icon or "6031763447")
-	local OpenIcon = FormatImage((config.OpenButton and config.OpenButton.Icon) or config.Icon or "6031763447")
+	local MainIcon = FormatImage(config.Icon or "6031763447")	local OpenIcon = FormatImage((config.OpenButton and config.OpenButton.Icon) or config.Icon or "6031763447")
+	local Callback = config.Callback
 
-	-- ScreenGui
+	-- ✅ Create ScreenGui ONLY when CreateWindow is called
 	local ScreenGui = Instance.new("ScreenGui")
 	ScreenGui.Name = "KazeUI"
 	ScreenGui.ResetOnSpawn = false
 	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	ScreenGui.Parent = LP:WaitForChild("PlayerGui")
 
-	-- UIScale (mobile-friendly)
 	local UIScale = Instance.new("UIScale")
 	UIScale.Parent = ScreenGui
 	local function UpdateScale()
@@ -127,7 +462,7 @@ function UI.CreateWindow(config)
 	local Window = Instance.new("Frame")
 	Window.Name = "MainWindow"
 	Window.Size = UDim2.fromOffset(650, 420)
-	Window = UDim2.fromScale(0.5, 0.5)
+	Window.Position = UDim2.fromScale(0.5, 0.5)
 	Window.AnchorPoint = Vector2.new(0.5, 0.5)
 	Window.BackgroundColor3 = Theme.Background
 	Window.BorderSizePixel = 0
@@ -145,15 +480,15 @@ function UI.CreateWindow(config)
 	local TopBar = Instance.new("Frame")
 	TopBar.Name = "TopBar"
 	TopBar.Size = UDim2.new(1, 0, 0, 56)
-	TopBar.BackgroundColor3 = Theme.TopBar	TopBar.BorderSizePixel = 0
+	TopBar.BackgroundColor3 = Theme.TopBar
+	TopBar.BorderSizePixel = 0
 	TopBar.Parent = Window
 	Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 14)
 	MakeDraggable(TopBar, Window)
 
 	-- Avatar & Labels
 	local Avatar = Instance.new("ImageLabel")
-	Avatar.Size = UDim2.fromOffset(36, 36)
-	Avatar.Position = UDim2.fromOffset(12, 10)
+	Avatar.Size = UDim2.fromOffset(36, 36)	Avatar.Position = UDim2.fromOffset(12, 10)
 	Avatar.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 	Avatar.Image = MainIcon
 	Avatar.Parent = TopBar
@@ -186,7 +521,7 @@ function UI.CreateWindow(config)
 	local TopDivider = Instance.new("Frame")
 	TopDivider.Size = UDim2.new(1, 0, 0, 2)
 	TopDivider.Position = UDim2.new(0, 0, 1, -2)
-	TopDivider.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+	TopDivider.BackgroundColor3 = Theme.PrimaryColor
 	TopDivider.BorderSizePixel = 0
 	TopDivider.ZIndex = 5
 	TopDivider.Parent = TopBar
@@ -195,13 +530,13 @@ function UI.CreateWindow(config)
 	topDivStroke.Color = Theme.PrimaryColor
 	topDivStroke.Thickness = Theme.StrokeThickness
 	StartNeonLoop(topDivStroke)
-	-- Traffic Lights
+
+	-- Traffic lights
 	local defaultWindowSize = UDim2.fromOffset(650, 420)
 	local lastNormalSize = defaultWindowSize
 	local lastNormalPosition = UDim2.fromScale(0.5, 0.5)
 	local lastNormalAnchor = Vector2.new(0.5, 0.5)
 	local toggledMaximized = false
-
 	local function createCircleButton(name, offsetX, color)
 		local btn = Instance.new("TextButton")
 		btn.Name = name
@@ -243,7 +578,8 @@ function UI.CreateWindow(config)
 	MiniIcon.AnchorPoint = Vector2.new(0.5, 0.5)
 	MiniIcon.BackgroundTransparency = 1
 	MiniIcon.Image = OpenIcon
-	MiniIcon.Parent = MiniButton	MiniIcon.ZIndex = 1000
+	MiniIcon.Parent = MiniButton
+	MiniIcon.ZIndex = 1000
 
 	local MiniStroke = Instance.new("UIStroke")
 	MiniStroke.Color = Theme.PrimaryColor
@@ -251,10 +587,9 @@ function UI.CreateWindow(config)
 	MiniStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	MiniStroke.Parent = MiniButton
 	StartNeonLoop(MiniStroke)
-
 	MakeDraggable(MiniButton, MiniButton)
 
-	-- Minimize/Restore
+	-- Minimize
 	local function minimizeWindow()
 		Window.Visible = false
 		MiniButton.Visible = true
@@ -292,15 +627,15 @@ function UI.CreateWindow(config)
 			Window.AnchorPoint = lastNormalAnchor
 			Window.Position = lastNormalPosition
 			TweenService:Create(Window, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = lastNormalSize, Position = lastNormalPosition }):Play()
-		end	end)
+		end
+	end)
 
-	-- Close Confirmation
+	-- Close confirm
 	local function ShowCloseConfirm()
 		BtnYellow.Active = false; BtnGreen.Active = false; BtnRed.Active = false
 		local Overlay = Instance.new("Frame")
 		Overlay.Size = UDim2.new(1, 0, 1, 0)
-		Overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-		Overlay.BackgroundTransparency = 0.6
+		Overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)		Overlay.BackgroundTransparency = 0.6
 		Overlay.ZIndex = 50
 		Overlay.Parent = Window
 
@@ -341,20 +676,20 @@ function UI.CreateWindow(config)
 		ConfirmText.ZIndex = 53
 		ConfirmText.Parent = ConfirmWindow
 
-		local ButtonsFrame = Instance.new("Frame")		ButtonsFrame.Size = UDim2.new(1, 0, 0, 40)
+		local ButtonsFrame = Instance.new("Frame")
+		ButtonsFrame.Size = UDim2.new(1, 0, 0, 40)
 		ButtonsFrame.Position = UDim2.new(0, 0, 1, -20)
 		ButtonsFrame.AnchorPoint = Vector2.new(0, 1)
 		ButtonsFrame.BackgroundTransparency = 1
 		ButtonsFrame.ZIndex = 53
 		ButtonsFrame.Parent = ConfirmWindow
 
-		local layout = Instance.new("UIListLayout", ButtonsFrame)
-		layout.FillDirection = Enum.FillDirection.Horizontal
+		local layout = Instance.new("UIListLayout", ButtonsFrame)		layout.FillDirection = Enum.FillDirection.Horizontal
 		layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 		layout.Padding = UDim.new(0, 16)
 
 		local ConfirmBtn = Instance.new("TextButton")
-		ConfirmBtn.Size = UDim2(0, 120, 0, 36)
+		ConfirmBtn.Size = UDim2.new(0, 120, 0, 36)
 		ConfirmBtn.BackgroundColor3 = Theme.ButtonConfirm
 		ConfirmBtn.Text = "Confirm"
 		ConfirmBtn.TextColor3 = Color3.fromRGB(230, 230, 230)
@@ -384,13 +719,13 @@ function UI.CreateWindow(config)
 
 	BtnRed.MouseButton1Click:Connect(ShowCloseConfirm)
 
-	-- Content Area
+	-- Content
 	local Content = Instance.new("Frame")
 	Content.Position = UDim2.fromOffset(0, 56)
 	Content.Size = UDim2.new(1, 0, 1, -56)
 	Content.BackgroundTransparency = 1
 	Content.Parent = Window
-	-- Sidebar
+
 	local SideBar = Instance.new("Frame")
 	SideBar.Size = UDim2.new(0, 180, 1, 0)
 	SideBar.BackgroundColor3 = Theme.Background
@@ -398,9 +733,7 @@ function UI.CreateWindow(config)
 	SideBar.Parent = Content
 	Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 14)
 
-	-- Vertical Divider
-	local VertDivider = Instance.new("Frame")
-	VertDivider.Size = UDim2.new(0, 2, 1, 0)
+	local VertDivider = Instance.new("Frame")	VertDivider.Size = UDim2.new(0, 2, 1, 0)
 	VertDivider.Position = UDim2.new(0, 180, 0, 0)
 	VertDivider.BackgroundColor3 = Theme.PrimaryColor
 	VertDivider.BorderSizePixel = 0
@@ -411,7 +744,6 @@ function UI.CreateWindow(config)
 	vertDivStroke.Thickness = Theme.StrokeThickness
 	StartNeonLoop(vertDivStroke)
 
-	-- Pages Container
 	local Pages = Instance.new("Frame")
 	Pages.Position = UDim2.new(0, 182, 0, 0)
 	Pages.Size = UDim2.new(1, -182, 1, 0)
@@ -420,371 +752,23 @@ function UI.CreateWindow(config)
 	Pages.Parent = Content
 	Instance.new("UICorner", Pages).CornerRadius = UDim.new(0, 12)
 
-	-- Return public API
-	return {
+	-- Initialize Tabs
+	local TabsModule = Tabs.New(SideBar, Pages, WindowStroke.Color)
+
+	-- ✅ Return window with exact API you want
+	local Win = {
 		Window = Window,
 		Content = Content,
 		MiniButton = MiniButton,
-		Pages = Pages,
 		SideBar = SideBar,
+		Pages = Pages,
 		CreateTab = function(self, name, iconId)
-			return Tabs.New(SideBar, Pages, Theme):CreateTab(name, iconId)
+			return TabsModule.CreateTab(name, iconId)
 		end,
 	}
-end
 
--- ==============================================
--- ✅ MODULE 2: TABS
--- ==============================================
-local Tabs = {}
-
-function Tabs.New(sidebarFrame, pagesFrame, theme)
-	local tabsScroller = Instance.new("ScrollingFrame")	tabsScroller.Name = "TabsScroller"
-	tabsScroller.BackgroundTransparency = 1
-	tabsScroller.ScrollBarThickness = 6
-	tabsScroller.CanvasSize = UDim2.new(0, 0, 0, 0)
-	tabsScroller.AutomaticCanvasSize = Enum.AutomaticSize.Y
-	tabsScroller.ScrollBarImageColor3 = Color3.fromRGB(40, 40, 45)
-	tabsScroller.Size = UDim2.new(1, -16, 1, -16)
-	tabsScroller.Position = UDim2.fromOffset(8, 8)
-	tabsScroller.Parent = sidebarFrame
-
-	local tabsList = Instance.new("Frame")
-	tabsList.Name = "TabsList"
-	tabsList.BackgroundTransparency = 1
-	tabsList.Size = UDim2.new(1, 0, 0, 0)
-	tabsList.AutomaticSize = Enum.AutomaticSize.Y
-	tabsList.Parent = tabsScroller
-
-	local tabsLayout = Instance.new("UIListLayout")
-	tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	tabsLayout.Padding = UDim.new(0, 8)
-	tabsLayout.Parent = tabsList
-
-	local createdTabs = {}
-
-	local function activateTab(targetTab)
-		for _, t in ipairs(createdTabs) do
-			TweenService:Create(t.Button, TweenInfo.new(0.12), { BackgroundColor3 = theme.TabInactive }):Play()
-			t.Indicator.Visible = false
-			t.Page.Visible = false
-			t.Label.TextColor3 = theme.TabTextInactive
-			t.Label.Font = Enum.Font.Gotham
-		end
-		TweenService:Create(targetTab.Button, TweenInfo.new(0.12), { BackgroundColor3 = theme.TabActive }):Play()
-		targetTab.Indicator.Visible = true
-		targetTab.Page.Visible = true
-		targetTab.Label.TextColor3 = theme.TabTextActive
-		targetTab.Label.Font = Enum.Font.GothamBold
-	end
-
-	local public = {}
-
-	function public.CreateTab(name, iconId)
-		name = tostring(name or "Tab")
-		local formattedIcon = FormatImage(iconId or "")
-
-		local btn = Instance.new("TextButton")
-		btn.Name = "TabButton_" .. name
-		btn.Size = UDim2.new(1, -16, 0, 44)
-		btn.BackgroundColor3 = theme.TabInactive
-		btn.BorderSizePixel = 0		btn.Text = " "
-		btn.AutoButtonColor = false
-		btn.LayoutOrder = #createdTabs + 1
-		btn.Parent = tabsList
-
-		Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-
-		local leftIndicator = Instance.new("Frame")
-		leftIndicator.Name = "LeftIndicator"
-		leftIndicator.Size = UDim2.new(0, 4, 1, 0)
-		leftIndicator.BackgroundColor3 = theme.PrimaryColor
-		leftIndicator.BorderSizePixel = 0
-		leftIndicator.Visible = false
-		Instance.new("UICorner", leftIndicator).CornerRadius = UDim.new(0, 6)
-		leftIndicator.Parent = btn
-
-		local iconLabel = Instance.new("ImageLabel")
-		iconLabel.Name = "Icon"
-		iconLabel.Size = UDim2.fromOffset(28, 28)
-		iconLabel.Position = UDim2.new(0, 10, 0.5, -14)
-		iconLabel.BackgroundTransparency = 1
-		iconLabel.Image = formattedIcon
-		Instance.new("UICorner", iconLabel).CornerRadius = UDim.new(1, 0)
-		iconLabel.Parent = btn
-
-		local txt = Instance.new("TextLabel")
-		txt.Name = "Label"
-		txt.Size = UDim2.new(1, -56, 1, 0)
-		txt.Position = UDim2.fromOffset(48, 0)
-		txt.BackgroundTransparency = 1
-		txt.Text = name
-		txt.TextColor3 = theme.TabTextInactive
-		txt.Font = Enum.Font.Gotham
-		txt.TextSize = 15
-		txt.TextXAlignment = Enum.TextXAlignment.Left
-		txt.Parent = btn
-
-		local page = Instance.new("Frame")
-		page.Name = "Page_" .. name
-		page.Size = UDim2.new(1, 0, 1, 0)
-		page.BackgroundTransparency = 1
-		page.Visible = false
-		page.Parent = pagesFrame
-
-		local pageContent = Instance.new("Frame")
-		pageContent.Name = "PageContent"
-		pageContent.Size = UDim2.new(1, 0, 1, 0)
-		pageContent.BackgroundTransparency = 1
-		pageContent.Parent = page
-		local contentLayout = Instance.new("UIListLayout")
-		contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-		contentLayout.Padding = UDim.new(0, 8)
-		contentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-		contentLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-		contentLayout.Parent = pageContent
-
-		local tabObj = {
-			Button = btn,
-			Indicator = leftIndicator,
-			Label = txt,
-			Icon = iconLabel,
-			Page = page,
-			PageContent = pageContent,
-		}
-		table.insert(createdTabs, tabObj)
-
-		btn.MouseEnter:Connect(function()
-			if not leftIndicator.Visible then
-				TweenService:Create(btn, TweenInfo.new(0.10), { BackgroundColor3 = theme.TabHover }):Play()
-				txt.TextColor3 = Color3.fromRGB(220, 220, 220)
-			end
-		end)
-		btn.MouseLeave:Connect(function()
-			if not leftIndicator.Visible then
-				TweenService:Create(btn, TweenInfo.new(0.10), { BackgroundColor3 = theme.TabInactive }):Play()
-				txt.TextColor3 = theme.TabTextInactive
-			end
-		end)
-		btn.MouseButton1Click:Connect(function() activateTab(tabObj) end)
-
-		if #createdTabs == 1 then activateTab(tabObj) end
-
-		return {
-			Page = page,
-			PageContent = pageContent,
-			Paragraph = function(_, ptitle, pbody)
-				return Elements.CreateParagraph(pageContent, ptitle, pbody)
-			end,
-			Section = function(_, stitle)
-				return Elements.CreateSection(pageContent, stitle)
-			end,
-		}
-	end
-
-	return public
-end
-
--- ==============================================
--- ✅ MODULE 3: ELEMENTS (Factory)-- ==============================================
-local Elements = {}
-
--- 🔒 Safe width fallback: use relative size first, then default
-local function GetSafeWidth(parentFrame)
-	local w = parentFrame.Size.X
-	if w > 0 then
-		return w * 0.95
-	else
-		-- If not laid out yet, use safe default
-		return 520
-	end
-end
-
-function Elements.CreateParagraph(parentFrame, title, body)
-	title = tostring(title or "")
-	body = tostring(body or "")
-
-	local measuredWidth = GetSafeWidth(parentFrame)
-
-	-- Title height
-	local titleHeight = 0
-	if title ~= " " then
-		local ts = TextService:GetTextSize(title, 16, Enum.Font.GothamBold, Vector2.new(measuredWidth - 32, 1000))
-		titleHeight = math.max(20, math.ceil(ts.Y))
-	end
-
-	-- Body height
-	local bodySize = TextService:GetTextSize(body, 14, Enum.Font.Gotham, Vector2.new(measuredWidth - 32, 2000))
-	local bodyHeight = math.ceil(bodySize.Y)
-	local totalHeight = 10 + titleHeight + 6 + bodyHeight + 10
-
-	local wrapper = Instance.new("Frame")
-	wrapper.Name = "ParagraphWrapper"
-	wrapper.Size = UDim2.new(1, 0, 0, totalHeight + 12)
-	wrapper.BackgroundTransparency = 1
-	wrapper.AutomaticSize = Enum.AutomaticSize.Y
-	wrapper.Parent = parentFrame
-
-	local paraFrame = Instance.new("Frame")
-	paraFrame.Name = "Paragraph"
-	paraFrame.AnchorPoint = Vector2.new(0.5, 0)
-	paraFrame.Position = UDim2.new(0.5, 0, 0, 6)
-	paraFrame.Size = UDim2.new(0.95, 0, 0, totalHeight)
-	paraFrame.BackgroundColor3 = Theme.ParagraphBg
-	paraFrame.BorderSizePixel = 0
-	Instance.new("UICorner", paraFrame).CornerRadius = UDim.new(0, 8)
-	paraFrame.Parent = wrapper
-
-	local glow = Instance.new("Frame")	glow.Name = "ParagraphGlow"
-	glow.AnchorPoint = Vector2.new(0.5, 0)
-	glow.Position = UDim2.new(0.5, 0, 0, 4)
-	glow.Size = UDim2.new(0.96, 0, 0, totalHeight + 10)
-	glow.BackgroundTransparency = 0.96
-	glow.BackgroundColor3 = Theme.PrimaryColor
-	Instance.new("UICorner", glow).CornerRadius = UDim.new(0, 10)
-	glow.Parent = wrapper
-	StartNeonLoop(glow)
-
-	local paraStroke = Instance.new("UIStroke", paraFrame)
-	paraStroke.Thickness = 2
-	paraStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	paraStroke.Color = Theme.PrimaryColor
-	StartNeonLoop(paraStroke)
-
-	local inner = Instance.new("Frame")
-	inner.Size = UDim2.new(1, -20, 1, -20)
-	inner.Position = UDim2.fromOffset(10, 10)
-	inner.BackgroundTransparency = 1
-	inner.Parent = paraFrame
-
-	if title ~= " " then
-		local titleLabel = Instance.new("TextLabel")
-		titleLabel.Name = "ParagraphTitle"
-		titleLabel.Size = UDim2.new(1, 0, 0, titleHeight)
-		titleLabel.Position = UDim2.fromOffset(0, 0)
-		titleLabel.BackgroundTransparency = 1
-		titleLabel.Text = title
-		titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-		titleLabel.Font = Enum.Font.GothamBold
-		titleLabel.TextSize = 16
-		titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-		titleLabel.TextWrapped = true
-		titleLabel.Parent = inner
-	end
-
-	local bodyLabel = Instance.new("TextLabel")
-	bodyLabel.Name = "ParagraphBody"
-	bodyLabel.Size = UDim2.new(1, 0, 0, bodyHeight)
-	bodyLabel.Position = UDim2.fromOffset(0, titleHeight + 6)
-	bodyLabel.BackgroundTransparency = 1
-	bodyLabel.Text = body
-	bodyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-	bodyLabel.Font = Enum.Font.Gotham
-	bodyLabel.TextSize = 14
-	bodyLabel.TextWrapped = true
-	bodyLabel.TextXAlignment = Enum.TextXAlignment.Left
-	bodyLabel.TextYAlignment = Enum.TextYAlignment.Top
-	bodyLabel.Parent = inner
-	return {
-		Wrapper = wrapper,
-		Frame = paraFrame,
-		SetText = function(self, newText)
-			newText = tostring(newText or " ")
-			bodyLabel.Text = newText
-			task.defer(function()
-				local w = GetSafeWidth(parentFrame)
-				local newTitleH, newBodyH = 0, 0
-				if title ~= " " then
-					local ts2 = TextService:GetTextSize(title, 16, Enum.Font.GothamBold, Vector2.new(w - 32, 1000))
-					newTitleH = math.max(20, math.ceil(ts2.Y))
-				end
-				local newBodySize = TextService:GetTextSize(newText, 14, Enum.Font.Gotham, Vector2.new(w - 32, 2000))
-				newBodyH = math.ceil(newBodySize.Y)
-				local newTotal = 10 + newTitleH + 6 + newBodyH + 10
-				paraFrame.Size = UDim2.new(0.95, 0, 0, newTotal)
-				glow.Size = UDim2.new(0.96, 0, 0, newTotal + 10)
-				wrapper.Size = UDim2.new(1, 0, 0, newTotal + 12)
-				if titleLabel then titleLabel.Size = UDim2.new(1, 0, 0, newTitleH) end
-				bodyLabel.Size = UDim2.new(1, 0, 0, newBodyH)
-			end)
-		end,
-	}
-end
-
-function Elements.CreateSection(parentFrame, title)
-	title = tostring(title or " ")
-	local sectionFrame = Instance.new("Frame")
-	sectionFrame.Name = "Section_" .. title
-	sectionFrame.Size = UDim2.new(1, -24, 0, 0)
-	sectionFrame.BackgroundTransparency = 1
-	sectionFrame.AutomaticSize = Enum.AutomaticSize.Y
-	sectionFrame.Parent = parentFrame
-
-	local sectionLayout = Instance.new("UIListLayout")
-	sectionLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	sectionLayout.Padding = UDim.new(0, 6)
-	sectionLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	sectionLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-	sectionLayout.Parent = sectionFrame
-
-	local titleLabel = Instance.new("TextLabel")
-	titleLabel.Name = "SectionTitle"
-	titleLabel.Size = UDim2.new(1, 0, 0, 36)
-	titleLabel.BackgroundTransparency = 1
-	titleLabel.Text = title
-	titleLabel.TextColor3 = Theme.SectionTitle
-	titleLabel.Font = Enum.Font.GothamBold	titleLabel.TextSize = 22
-	titleLabel.TextWrapped = true
-	titleLabel.TextXAlignment = Enum.TextXAlignment.Center
-	titleLabel.Parent = sectionFrame
-
-	local sep = Instance.new("Frame")
-	sep.Name = "SectionSeparator"
-	sep.Size = UDim2.new(0.6, 0, 0, 2)
-	sep.BackgroundColor3 = Theme.Separator
-	sep.BorderSizePixel = 0
-	Instance.new("UICorner", sep).CornerRadius = UDim.new(0, 4)
-	sep.Parent = sectionFrame
-
-	local sectionContent = Instance.new("Frame")
-	sectionContent.Name = "SectionContent"
-	sectionContent.Size = UDim2.new(1, 0, 0, 0)
-	sectionContent.BackgroundTransparency = 1
-	sectionContent.AutomaticSize = Enum.AutomaticSize.Y
-	sectionContent.Parent = sectionFrame
-
-	local secLayout = Instance.new("UIListLayout")
-	secLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	secLayout.Padding = UDim.new(0, 8)
-	secLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	secLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-	secLayout.Parent = sectionContent
-
-	return {
-		Frame = sectionFrame,
-		TitleLabel = titleLabel,
-		AddLabel = function(self, text)
-			local label = Instance.new("TextLabel")
-			label.Size = UDim2.new(1, -40, 0, 24)
-			label.BackgroundTransparency = 1
-			label.Text = tostring(text or " ")
-			label.TextColor3 = Theme.LabelText
-			label.Font = Enum.Font.Gotham
-			label.TextSize = 14
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			label.Parent = sectionContent
-			return label
-		end,
-		AddParagraph = function(self, ptitle, pbody)
-			return Elements.CreateParagraph(sectionContent, ptitle, pbody)
-		end,
-	}
-end
-
--- ==============================================
--- ✅ FINAL EXPORT-- ==============================================
-function KazeUI:CreateWindow(config)
-	return UI.CreateWindow(config)
+	if typeof(Callback) == "function" then pcall(Callback) end
+	return Win
 end
 
 return KazeUI
